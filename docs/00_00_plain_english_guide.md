@@ -238,7 +238,45 @@ long-lived secret to leak, rotate, or accidentally print. A pipeline that pastes
 an access key into `secrets` is doing the same job far less safely, and the
 difference is the entire lesson of Lab 4.3.
 
-### 3.6 What is safe to publish
+### 3.6 What a saved plan is, and why it goes stale
+
+Most labs run `terraform plan -out=tfplan` and then `terraform apply tfplan`,
+rather than a bare `apply`. The reason is worth understanding, because it is the
+same reason it sometimes refuses to run.
+
+A bare `terraform apply` computes a plan and immediately carries it out. Passing
+a saved plan splits that in two: the plan is a **file recording exactly which
+API calls Terraform intends to make**, and apply performs precisely those and
+nothing else. What you reviewed is what runs. In a pipeline that difference is
+the whole control, and it is why Lab 4.3 gates on a plan rather than on an
+apply.
+
+The cost is that a saved plan is a promise about a particular state. If the
+state moves after the plan is written, the promise no longer holds, and
+Terraform says so:
+
+```
+Error: Saved plan is stale
+The given plan file can no longer be applied because the state was changed
+by another operation after the plan was created.
+```
+
+That is the safety feature working, not a fault. Something touched the state
+between your plan and your apply: another `terraform` command in that
+workspace, a colleague, a pipeline, or simply a `terraform output` or `refresh`
+that recorded a data source. Terraform cannot tell a harmless change from a
+dangerous one, so it refuses rather than guessing.
+
+**The fix is always the same: plan again, read it again, apply again.** Nothing
+is broken and nothing is lost. If the new plan differs from the old one, that
+difference is exactly what you were being protected from, so read it rather
+than skim it.
+
+Two habits that avoid it: do not leave a saved plan sitting for hours before
+applying it, and do not run Terraform against the same workspace from two
+places at once.
+
+### 3.7 What is safe to publish
 
 Your evidence *is* your portfolio, so most of it is meant to be public. Three
 things to be deliberate about:
