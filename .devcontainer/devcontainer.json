@@ -14,11 +14,17 @@
   ],
 
   // The volumes mount as root; the labs run as vscode.
-  "postCreateCommand": "sudo chown -R vscode:vscode /home/vscode/.aws /home/vscode/.config/gcloud",
+  // Fix ownership of the volumes, then make sure the profile AWS_PROFILE points
+  // at actually exists. Without this the container starts with an empty
+  // ~/.aws/config while AWS_PROFILE is already set to cgep, so every aws and
+  // terraform command fails with "The config profile (cgep) could not be found"
+  // before the student has done anything wrong. Idempotent: it appends only if
+  // the stanza is missing, and it writes no credentials, only the instruction
+  // to resolve them through the CLI.
+  "postStartCommand": "sudo chown -R vscode:vscode /home/vscode/.aws /home/vscode/.config/gcloud && grep -q '^\\[profile cgep\\]' /home/vscode/.aws/config 2>/dev/null || printf '\\n[profile cgep]\\nregion = us-east-1\\ncredential_process = aws configure export-credentials --profile default --format process\\n' >> /home/vscode/.aws/config",
 
-  // Matches the credential_process profile the guides use. The profile itself
-  // lives in ~/.aws/config, which the volume above preserves; Lab 0.1 Step 4
-  // creates it.
+  // The profile the postStartCommand guarantees. You still run `aws login
+  // --remote --profile default` yourself; the container holds no credentials.
   "remoteEnv": {
     "AWS_PROFILE": "cgep",
     "AWS_REGION": "us-east-1"

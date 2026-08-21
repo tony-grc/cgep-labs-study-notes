@@ -595,6 +595,12 @@ roughly 3 GB of tooling. A long quiet pause is the build working, not a hang;
 later starts reuse the image and open in seconds. You can watch it by clicking
 **Starting Dev Container (show log)** in the notification.
 
+The container has its own `~/.aws`, separate from your machine's, kept on a
+named volume so it survives rebuilds. It starts empty, so the container writes
+the `[profile cgep]` stanza for you the first time it starts. It writes no
+credentials: you still run `aws login` yourself, and inside a container that
+means `aws login --remote --profile default`.
+
 When it finishes, the green box at the bottom left of VS Code reads
 **Dev Container: CGE-P Labs**, and a terminal there starts you in
 `/workspaces/cgep-labs-study-notes`. That path is the same folder as on your
