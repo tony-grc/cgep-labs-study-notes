@@ -13,6 +13,7 @@ The library survives the cloud change because the control IDs do. The rules do n
 
 ## Prerequisites
 
+- Run these from inside the devcontainer if you set one up in Lab 0.1: that is where the toolchain and your cloud logins live. `source cgep.env` first, in every new shell.
 - Lab 2.3 workspace on disk. Its plan is the input, and it contains a KMS key and two bucket policies the rules below depend on.
 - Lab 3.3 policy library carried forward. Five rules, five controls.
 - Conftest `>= 0.50`.

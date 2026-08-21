@@ -34,6 +34,7 @@ Lab 6.1 encodes this. Keep it in mind while you write the module.
 
 ## Prerequisites
 
+- Run these from inside the devcontainer if you set one up in Lab 0.1: that is where the toolchain and your cloud logins live. `source cgep.env` first, in every new shell.
 - **Lab 0.1 Part 2** for the GCP side: creating the project, attaching billing, enabling the APIs, and the two separate authentications. This is the first GCP lab, so do that first if you have only set up AWS so far.
 - A GCP project you control with billing enabled. Examples use `your-gcp-project`.
 - `gcloud auth login` **and** `gcloud auth application-default login`. The google provider uses ADC.

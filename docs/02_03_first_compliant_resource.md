@@ -32,6 +32,7 @@ Every row here is enforced by a line of code you will write. If you cannot point
 
 ## Prerequisites
 
+- Run these from inside the devcontainer if you set one up in Lab 0.1: that is where the toolchain and your cloud logins live. `source cgep.env` first, in every new shell.
 - **Lab 2.2 completed.** You need the state bucket name and the state CMK ARN.
 - AWS account with permissions for S3, KMS, and IAM policy reads in `us-east-1`.
 - Terraform `>= 1.10`.

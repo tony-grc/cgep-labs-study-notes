@@ -25,6 +25,7 @@ It also confronts a trap that is easy to walk into: capturing raw Terraform stat
 
 ## Prerequisites
 
+- Run these from inside the devcontainer if you set one up in Lab 0.1: that is where the toolchain and your cloud logins live. `source cgep.env` first, in every new shell.
 - **Lab 2.2** state backend, and **Lab 2.3** completed with `evidence/lab-2-3/` populated and the workspace still on disk.
 - AWS CLI v2, plus `jq` and either `sha256sum` or `shasum`.
 - Terraform `>= 1.10`.
@@ -509,10 +510,17 @@ You did not set that explicitly. The bucket's default rule applied it at upload.
 
 This is the lesson.
 
+The receipt printed a `version_id`. Read it back rather than transcribing it,
+for the same reason you read `backend.hcl` out of Lab 2.2's outputs:
+
 ```bash
+VERSION_ID=$(aws s3api list-object-versions --bucket "$VAULT" \
+  --prefix runs/test-001/ --query 'Versions[0].VersionId' --output text)
+echo "$VERSION_ID"
+
 aws s3api delete-object --bucket "$VAULT" \
   --key runs/test-001/bundle.tar.gz \
-  --version-id "<base64-version-id>"
+  --version-id "$VERSION_ID"
 ```
 
 ```

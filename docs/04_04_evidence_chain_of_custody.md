@@ -13,6 +13,7 @@ Two things about verification scripts are worth knowing before you write one, an
 
 ## Prerequisites
 
+- Run these from inside the devcontainer if you set one up in Lab 0.1: that is where the toolchain and your cloud logins live. `source cgep.env` first, in every new shell.
 - Lab 2.5 vault deployed. You have its bucket name.
 - Lab 4.3 pipeline working on every PR.
 - Cosign `>= 3.0` locally (`cosign version`).

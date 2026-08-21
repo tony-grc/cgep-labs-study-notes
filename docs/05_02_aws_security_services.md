@@ -37,6 +37,7 @@ Both mappings can be argued. AU-9 is the stronger argument, and the reason to te
 
 ## Prerequisites
 
+- Run these from inside the devcontainer if you set one up in Lab 0.1: that is where the toolchain and your cloud logins live. `source cgep.env` first, in every new shell.
 - **Lab 2.5** vault deployed. Data events target it.
 - AWS account with admin or near-admin rights.
 - Terraform `>= 1.10`, using the Lab 2.2 backend.

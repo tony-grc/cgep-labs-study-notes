@@ -96,6 +96,7 @@ v2 costs more than v1. That is the honest consequence of "production grade," and
 
 ## Conventions
 
+- **Run every command inside the container**, if you set one up in Lab 0.1. That is where the toolchain and your cloud logins live. Running on your own machine means installing the ten tools and logging in a second time, which is a separate setup rather than a shortcut.
 - Every lab states cost and time before the first command.
 - Every control citation appears as a comment at the exact line that enforces it.
 - Every lab ends with cleanup that actually works, verified against versioned and Object-Locked buckets.

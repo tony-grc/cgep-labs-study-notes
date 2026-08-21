@@ -19,6 +19,7 @@ There is no way to complete the capstone's Layer 3 without this. Build it now, o
 
 ## Prerequisites
 
+- Run these from inside the devcontainer if you set one up in Lab 0.1: that is where the toolchain and your cloud logins live. `source cgep.env` first, in every new shell.
 - AWS account with permissions to create S3 buckets, a KMS key, and a DynamoDB table in `us-east-1`.
 - Terraform `>= 1.10`. Native S3 state locking (`use_lockfile`) landed in 1.10; the DynamoDB path below is the fallback for older versions.
 - AWS CLI v2, with the `credential_process` profile from Lab 0.1 and `export AWS_PROFILE=cgep` set in this shell.

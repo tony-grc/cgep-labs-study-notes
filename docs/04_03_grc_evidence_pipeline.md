@@ -13,6 +13,7 @@ The YAML file you commit **is** your CM-3, CM-6, CA-2, CA-7, RA-5, SR-3, and AU-
 
 ## Prerequisites
 
+- Run these from inside the devcontainer if you set one up in Lab 0.1: that is where the toolchain and your cloud logins live. `source cgep.env` first, in every new shell.
 - **Lab 2.2** state backend. The pipeline needs it; see "Why the backend is a prerequisite" below.
 - Lab 2.3 (v2), Lab 3.3, Lab 3.4 artifacts committed into the repo.
 - A GitHub repository you own.

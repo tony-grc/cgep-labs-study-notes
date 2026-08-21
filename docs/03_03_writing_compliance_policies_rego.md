@@ -25,6 +25,7 @@ Every deny message carries the resource address **and** the control ID. The deve
 
 ## Prerequisites
 
+- Run these from inside the devcontainer if you set one up in Lab 0.1: that is where the toolchain and your cloud logins live. `source cgep.env` first, in every new shell.
 - OPA `>= 1.0` (tested on 1.19.1). Policies declare `import rego.v1`, so they also run on 0.x `>= 0.60`.
 - Terraform `>= 1.9` and the `google` provider authenticated (`gcloud auth application-default login`).
 - Lab 2.4 completed. Its module is what the fixture consumes, and its `compliance_attestation` is what the AU-9 rule leans on.

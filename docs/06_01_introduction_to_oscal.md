@@ -13,6 +13,7 @@ This lab writes the smallest useful piece of that graph, and it **generates** th
 
 ## Prerequisites
 
+- Run these from inside the devcontainer if you set one up in Lab 0.1: that is where the toolchain and your cloud logins live. `source cgep.env` first, in every new shell.
 - Python `>= 3.10`, `pip install compliance-trestle`.
 - Lab 2.3 (v2) and/or Lab 2.4 module on disk. We describe them in OSCAL.
 - Lab 2.5 vault exists, with at least one bundle, so evidence URIs resolve.
