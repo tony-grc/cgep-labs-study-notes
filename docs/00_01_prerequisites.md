@@ -570,6 +570,17 @@ what Lab 3.4 gates on and Lab 4.3 runs in CI. Lab 6.1's OSCAL component points
 at evidence produced by all of them. **Each lab consumes what the last one
 produced**, which is why the order in the reading list is not a suggestion.
 
+> **Your evidence goes to your repository, not to anyone else's.** Because you
+> took a copy in Part 3, the `evidence/` you build belongs to you: `git push`
+> goes to your remote, and nothing you capture can reach the repository you
+> copied from. That is the whole reason for taking a copy rather than cloning
+> someone else's.
+>
+> If you are reading this in the source repository rather than your own copy,
+> note that it deliberately ships **no** evidence. A template hands the next
+> person a snapshot, and one built from someone else's account IDs and bucket
+> names would be worse than an empty one.
+
 > **A note on this repository's own layout.** These notes keep a worked copy of
 > every lab under `reference/lab-2-2/`, `reference/lab-2-3/` and so on, one
 > directory per lab so each can be run and tested independently. That is a
