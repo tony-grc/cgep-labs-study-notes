@@ -348,6 +348,18 @@ gcloud auth application-default print-access-token | head -c 20; echo "..."
 
 ADC tokens expire and **Terraform will not refresh them**. When you see `reauth related error (invalid_rapt)`, run `gcloud auth application-default login` again. This is normal and will happen several times during the course.
 
+> **Authenticating from a container.** Both commands try to open a browser, and
+> a container does not have one. Add `--no-launch-browser` to each:
+>
+> ```bash
+> gcloud auth login --no-launch-browser
+> gcloud auth application-default login --no-launch-browser
+> ```
+>
+> Each prints a URL to open on your own machine and waits for the code it gives
+> you back. This is the GCP counterpart of `aws login --remote`, and you need it
+> for both commands, not just the first.
+
 ### Step 10 Roles
 
 If you created the project you are already Owner, which is sufficient. If someone else grants you access, you need:
