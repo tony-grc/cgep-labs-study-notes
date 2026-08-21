@@ -29,6 +29,32 @@ This is the v2 rewrite. It differs from v1 in one governing way: **a lab may onl
 | 6.1 | [Introduction to OSCAL](06_01_introduction_to_oscal.md) | none | Component definition + profile, validated. |
 | 7.1 | [Capstone Brief](07_01_capstone_brief.md) | AWS | The graded deliverable. |
 
+## One repository, built up
+
+The labs are cumulative. Each one produces something the next consumes, and by
+Lab 6.1 you are holding the whole structure the capstone is graded on. The full
+tree, with which lab creates each part, is in
+[Lab 0.1 Step 12d](00_01_prerequisites.md).
+
+The short version of the chain:
+
+| Lab | Produces | Consumed by |
+|---|---|---|
+| 2.2 | the state backend | every workspace after it, and Lab 4.3's pipeline |
+| 2.3 | the `compliant-s3` pattern | 2.5's vault, 5.2's buckets, the capstone |
+| 2.4 | the GCP module and its attestation | 6.1's OSCAL component |
+| 2.5 | the evidence vault and capture script | 4.3, 4.4, 5.2's data events, 6.1's links |
+| 3.3 | the policy library and catalog | 3.4's gate, 4.3's CI, 6.1's requirements |
+| 3.4 | `policy-gate.sh` | 4.3, which shells out to it rather than reimplementing |
+| 4.3 | the pipeline | 4.4, which adds signing to it |
+| 4.4 | signing and verification | 6.1's evidence links, the capstone's chain of custody |
+| 5.2 / 5.4 | the cloud baselines | the capstone's Layer 1 |
+| 6.1 | the OSCAL component and profile | the capstone's write-up |
+
+**Nothing is discarded between labs.** If a step tells you to delete something,
+it is cleanup of a cloud resource that costs money, never of an artifact you
+built.
+
 ## The shared baseline
 
 Every S3 bucket built anywhere in this curriculum enforces the same floor. Labs do not re-argue it; they cite it. If you change something here, it changes everywhere, which is the point.

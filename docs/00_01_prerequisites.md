@@ -525,6 +525,60 @@ Password authentication over HTTPS has not worked for years. If you skip this
 and try to push, you get an authentication failure that does not explain that a
 token, not a password, is what is wanted.
 
+### Step 12d What you are building
+
+The labs are not eleven separate exercises. They are one repository, built up a
+piece at a time, and the capstone is what it looks like finished. Nothing is
+thrown away between labs, and nothing later goes hunting in a previous lab's
+folder for something it needs.
+
+```
+your-repo/
+├── terraform/
+│   ├── bootstrap/                  Lab 2.2   the state backend, keeps local state
+│   ├── primitives/
+│   │   ├── compliant-s3/           Lab 2.3   the pattern every bucket reuses
+│   │   ├── compliant-gcs-bucket/   Lab 2.4   the same idea on GCP
+│   │   └── evidence-vault/         Lab 2.5   Object Lock storage
+│   └── baselines/
+│       ├── aws/                    Lab 5.2   CloudTrail, Config, Security Hub
+│       └── gcp/                    Lab 5.4   Org Policy, federation, audit logs
+├── policies/                       Lab 3.3, extended by Lab 3.4
+│   ├── *.rego
+│   └── tests/
+├── scripts/
+│   ├── capture-evidence.sh         Lab 2.5
+│   ├── mutation-test.sh            Lab 3.3
+│   ├── policy-gate.sh              Lab 3.4
+│   ├── verify-evidence.sh          Lab 4.4
+│   ├── gen-oscal-requirements.py   Lab 6.1
+│   └── verify-oscal-graph.sh       Lab 6.1
+├── queries/                        Lab 5.2   the Athena SQL that earns AU-6
+├── oscal/
+│   ├── components/                 Lab 6.1
+│   └── profiles/                   Lab 6.1
+├── .github/workflows/grc-gate.yml  Lab 4.3, extended by Lab 4.4
+├── evidence/
+│   └── lab-2-2/ ... lab-6-1/       every lab deposits its proof here
+└── cgep.env                        your values, gitignored
+```
+
+Read it as a dependency graph rather than a filing system. Lab 2.2's backend is
+where every later workspace keeps its state. Lab 2.3's primitive is the pattern
+Lab 2.5's vault and the capstone's buckets both reuse. Lab 3.3's policies are
+what Lab 3.4 gates on and Lab 4.3 runs in CI. Lab 6.1's OSCAL component points
+at evidence produced by all of them. **Each lab consumes what the last one
+produced**, which is why the order in the reading list is not a suggestion.
+
+> **A note on this repository's own layout.** These notes keep a worked copy of
+> every lab under `reference/lab-2-2/`, `reference/lab-2-3/` and so on, one
+> directory per lab so each can be run and tested independently. That is a
+> reference implementation, not the shape you are building. When a guide says
+> `terraform/primitives/compliant-s3`, that is your repository; when a command
+> says `../lab-2-3`, that is the reference copy. Both work, because Terraform
+> cares about finding a workspace rather than where you keep it. Pick one and
+> stay in it.
+
 ## Part 4: The toolchain
 
 Ten tools, each with its own installer. There are two ways to get them, and
