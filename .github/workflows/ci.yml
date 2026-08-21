@@ -1,4 +1,4 @@
-# CI for cgep-labs-v2.
+# CI for the CGE-P lab notes.
 #
 # These are the same checks a learner runs locally. If something here fails,
 # the curriculum is broken, not the pipeline.
