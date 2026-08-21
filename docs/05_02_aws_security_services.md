@@ -457,7 +457,9 @@ ORDER BY attempts DESC;
 ```
 
 ```bash
-mkdir -p evidence/lab-5-2
+# evidence/ lives at the repository root, not in the workspace you are in
+EVIDENCE="$(git rev-parse --show-toplevel)/evidence/lab-5-2"
+mkdir -p "$EVIDENCE"
 aws athena start-query-execution \
   --work-group cgep-grc \
   --query-string "$(cat queries/au6-vault-access.sql)" \
@@ -472,16 +474,16 @@ If you do not schedule it, say so honestly and mark AU-6 as `partial` in your OS
 
 ```bash
 aws securityhub get-findings --region us-east-1 --max-results 50 \
-  > evidence/lab-5-2/security-hub-findings.json
+  > "$EVIDENCE/security-hub-findings.json"
 
 aws cloudtrail get-trail-status --name cgep-lab-mgmt --region us-east-1 \
-  > evidence/lab-5-2/trail-status.json
+  > "$EVIDENCE/trail-status.json"
 
 # AU-9: prove the digest chain validates
 aws cloudtrail validate-logs \
   --trail-arn "$(terraform output -raw trail_arn)" \
   --start-time "$(date -u -d '1 day ago' +%Y-%m-%dT%H:%M:%SZ)" \
-  | tee evidence/lab-5-2/log-validation.txt
+  | tee "$EVIDENCE/log-validation.txt"
 ```
 
 That last command is the AU-9 evidence, and it is the one most often skipped. It walks the digest chain and reports whether any log file was modified or deleted. Enabling validation and never validating is the same shape of mistake as writing a policy and never testing it.
@@ -499,9 +501,11 @@ That last command is the AU-9 evidence, and it is the one most often skipped. It
 ### Capture the evidence the checklist asks for
 
 ```bash
-mkdir -p evidence/lab-5-2
+# evidence/ lives at the repository root, not in the workspace you are in
+EVIDENCE="$(git rev-parse --show-toplevel)/evidence/lab-5-2"
+mkdir -p "$EVIDENCE"
 aws athena get-query-results --query-execution-id "$QID" \
-  > evidence/lab-5-2/au6-review-output.json
+  > "$EVIDENCE/au6-review-output.json"
 ```
 
 That file is what makes your AU-6 claim defensible. A query you ran once and did
@@ -534,7 +538,7 @@ not keep is indistinguishable from a query you never ran.
 ```bash
 # Capture evidence BEFORE destroying.
 aws securityhub get-findings --region us-east-1 --max-results 50 \
-  > evidence/lab-5-2/security-hub-findings.json
+  > "$EVIDENCE/security-hub-findings.json"
 
 # Keep Security Hub enabled but drop it from state, if you want it running.
 terraform state rm aws_securityhub_account.this

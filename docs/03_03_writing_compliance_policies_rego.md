@@ -593,9 +593,9 @@ opa inspect --annotations --format json policies/ \
       title: .annotations.title,
       package: (.path | map(.value) | join(".")),
       remediation: .annotations.custom.remediation
-    }]' > evidence/lab-3-3/policy-catalog.json
+    }]' > "$EVIDENCE/policy-catalog.json"
 
-cat evidence/lab-3-3/policy-catalog.json
+cat "$EVIDENCE/policy-catalog.json"
 ```
 
 ```json
@@ -655,9 +655,11 @@ Each broken resource flagged exactly once by the right control. The good bucket 
 ### Capture the evidence the checklist asks for
 
 ```bash
-mkdir -p evidence/lab-3-3
-opa test policies/ --format=json > evidence/lab-3-3/opa-test-results.json
-bash scripts/mutation-test.sh 2>&1 | tee evidence/lab-3-3/mutation-results.txt
+# evidence/ lives at the repository root, not in the workspace you are in
+EVIDENCE="$(git rev-parse --show-toplevel)/evidence/lab-3-3"
+mkdir -p "$EVIDENCE"
+opa test policies/ --format=json > "$EVIDENCE/opa-test-results.json"
+bash scripts/mutation-test.sh 2>&1 | tee "$EVIDENCE/mutation-results.txt"
 ```
 
 The mutation output matters more than the test results. Passing tests show the

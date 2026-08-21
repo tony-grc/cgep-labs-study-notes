@@ -334,7 +334,9 @@ Four properties, four breaks, four catches. That table is the best page in your 
 ### Capture the evidence the checklist asks for
 
 ```bash
-mkdir -p evidence/lab-4-4
+# evidence/ lives at the repository root, not in the workspace you are in
+EVIDENCE="$(git rev-parse --show-toplevel)/evidence/lab-4-4"
+mkdir -p "$EVIDENCE"
 {
   echo "### unmodified bundle, expect CHAIN INTACT"
   bash scripts/verify-evidence.sh test-001 2>&1
@@ -342,7 +344,7 @@ mkdir -p evidence/lab-4-4
   echo "### tampered bundle, expect failure"
   cp bundle.tar.gz /tmp/tampered.tar.gz && echo "x" >> /tmp/tampered.tar.gz
   sha256sum /tmp/tampered.tar.gz 2>&1
-} | tee evidence/lab-4-4/tamper-tests.txt
+} | tee "$EVIDENCE/tamper-tests.txt"
 ```
 
 ## Portfolio submission checklist

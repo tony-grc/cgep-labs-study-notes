@@ -632,13 +632,15 @@ them now, from the same commands you just ran rather than from memory. Paths are
 relative to your repository root.
 
 ```bash
-mkdir -p evidence/lab-2-5
+# evidence/ lives at the repository root, not in the workspace you are in
+EVIDENCE="$(git rev-parse --show-toplevel)/evidence/lab-2-5"
+mkdir -p "$EVIDENCE"
 
 # The receipt: re-run the capture and keep its output this time.
 scripts/capture-evidence.sh \
   --workspace ../lab-2-3 \
   --run-id    test-001 \
-  --vault     "$VAULT" | tee evidence/lab-2-5/receipt.json
+  --vault     "$VAULT" | tee "$EVIDENCE/receipt.json"
 
 # The lock test: both refusals and the misleading success, in one transcript.
 {
@@ -653,7 +655,7 @@ scripts/capture-evidence.sh \
   echo "### unversioned delete, expect SUCCESS: it writes a delete marker"
   aws s3api delete-object --bucket "$VAULT" \
     --key runs/test-001/bundle.tar.gz 2>&1
-} | tee evidence/lab-2-5/lock-test.txt
+} | tee "$EVIDENCE/lock-test.txt"
 ```
 
 Keep the third one. A transcript showing only refusals proves Object Lock is on;

@@ -345,7 +345,7 @@ If your project is in an Organization with SCC enabled, findings flow in automat
 
 ```bash
 gcloud scc findings list ORG_ID --source=- --format=json \
-  > evidence/lab-5-4/scc-findings.json
+  > "$EVIDENCE/scc-findings.json"
 ```
 
 For a standalone project without an Organization, SCC is unavailable. The Org Policy enforcements above are your preventive layer, and stating that substitution explicitly in your write-up is the right move: "detective coverage is absent at project scope; compensated by preventive enforcement at the API."
@@ -379,15 +379,17 @@ gcloud iam service-accounts keys create /tmp/k.json \
 ### Capture the evidence the checklist asks for
 
 ```bash
-mkdir -p evidence/lab-5-4
+# evidence/ lives at the repository root, not in the workspace you are in
+EVIDENCE="$(git rev-parse --show-toplevel)/evidence/lab-5-4"
+mkdir -p "$EVIDENCE"
 gcloud projects get-iam-policy "$TF_VAR_gcp_project" --format=json \
-  > evidence/lab-5-4/iam-policy.json
+  > "$EVIDENCE/iam-policy.json"
 
 {
   echo "### service account key creation, expect FAILED_PRECONDITION"
   gcloud iam service-accounts keys create /tmp/key.json \
     --iam-account="$SA_EMAIL" --project="$TF_VAR_gcp_project" 2>&1
-} | tee evidence/lab-5-4/enforcement-denied.txt
+} | tee "$EVIDENCE/enforcement-denied.txt"
 ```
 
 ## Portfolio submission checklist

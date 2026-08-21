@@ -715,10 +715,12 @@ Eighteen resources: the random suffix, the KMS key and its alias, the two bucket
 ### Step 10 Capture evidence
 
 ```bash
-mkdir -p evidence/lab-2-3
-terraform show -json tfplan > evidence/lab-2-3/plan.json
-terraform show -json         > evidence/lab-2-3/state.json
-terraform output -json compliance_attestation > evidence/lab-2-3/attestation.json
+# evidence/ lives at the repository root, not in the workspace you are in
+EVIDENCE="$(git rev-parse --show-toplevel)/evidence/lab-2-3"
+mkdir -p "$EVIDENCE"
+terraform show -json tfplan > "$EVIDENCE/plan.json"
+terraform show -json         > "$EVIDENCE/state.json"
+terraform output -json compliance_attestation > "$EVIDENCE/attestation.json"
 ```
 
 Open `state.json` and find each control rather than taking the table's word for it:
@@ -790,7 +792,9 @@ The three denials and the success are the strongest artifact this lab produces,
 and nothing has written them down yet:
 
 ```bash
-mkdir -p evidence/lab-2-3
+# evidence/ lives at the repository root, not in the workspace you are in
+EVIDENCE="$(git rev-parse --show-toplevel)/evidence/lab-2-3"
+mkdir -p "$EVIDENCE"
 
 {
   echo "### plain HTTP, expect AccessDenied (SC-8)"
@@ -804,7 +808,7 @@ mkdir -p evidence/lab-2-3
   echo "### same upload naming the key, expect success"
   aws s3 cp /tmp/t.txt "s3://$BUCKET/t.txt" \
     --sse aws:kms --sse-kms-key-id "$KMS" 2>&1
-} | tee evidence/lab-2-3/enforcement-test.txt
+} | tee "$EVIDENCE/enforcement-test.txt"
 ```
 
 ## Portfolio submission checklist

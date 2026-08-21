@@ -507,16 +507,18 @@ Three details worth naming:
 ### Capture the evidence the checklist asks for
 
 ```bash
-mkdir -p evidence/lab-3-4
+# evidence/ lives at the repository root, not in the workspace you are in
+EVIDENCE="$(git rev-parse --show-toplevel)/evidence/lab-3-4"
+mkdir -p "$EVIDENCE"
 conftest test --policy policies --output json plan.json \
-  > evidence/lab-3-4/conftest-pass.json
+  > "$EVIDENCE/conftest-pass.json"
 
 # The empty-results guard: a gate with nothing to evaluate must fail closed.
 {
   echo "### policy directory removed, expect non-zero exit"
   bash scripts/policy-gate.sh --policy /tmp/no-policies-here plan.json 2>&1
   echo "exit status: $?"
-} | tee evidence/lab-3-4/inert-gate-test.txt
+} | tee "$EVIDENCE/inert-gate-test.txt"
 ```
 
 ## Portfolio submission checklist

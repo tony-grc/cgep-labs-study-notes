@@ -407,10 +407,12 @@ The catalog, the profile, the implementation statement, the evidence URI, and th
 ### Capture the evidence the checklist asks for
 
 ```bash
-mkdir -p evidence/lab-6-1
+# evidence/ lives at the repository root, not in the workspace you are in
+EVIDENCE="$(git rev-parse --show-toplevel)/evidence/lab-6-1"
+mkdir -p "$EVIDENCE"
 trestle validate -f component-definitions/compliant-s3-v2/component-definition.json \
-  2>&1 | tee evidence/lab-6-1/trestle-validate.txt
-bash scripts/verify-oscal-graph.sh 2>&1 | tee evidence/lab-6-1/graph-verify.txt
+  2>&1 | tee "$EVIDENCE/trestle-validate.txt"
+bash scripts/verify-oscal-graph.sh 2>&1 | tee "$EVIDENCE/graph-verify.txt"
 ```
 
 `trestle validate` proves the document is well formed. Only the graph check

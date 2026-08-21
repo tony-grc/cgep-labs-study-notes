@@ -536,16 +536,18 @@ gcloud storage buckets describe gs://cgep-lab-dev-dev-data-001-logs \
 ### Capture the evidence the checklist asks for
 
 ```bash
-mkdir -p evidence/lab-2-4
-terraform show -json tfplan > evidence/lab-2-4/plan.json
-terraform output -json compliance_attestation > evidence/lab-2-4/attestation.json
+# evidence/ lives at the repository root, not in the workspace you are in
+EVIDENCE="$(git rev-parse --show-toplevel)/evidence/lab-2-4"
+mkdir -p "$EVIDENCE"
+terraform show -json tfplan > "$EVIDENCE/plan.json"
+terraform output -json compliance_attestation > "$EVIDENCE/attestation.json"
 ```
 
 The negative test is the one worth keeping, because it is the proof the module
 refuses rather than merely defaults:
 
 ```bash
-( cd ../negative-test && terraform plan 2>&1 ) | tee evidence/lab-2-4/negative-test.txt
+( cd ../negative-test && terraform plan 2>&1 ) | tee "$EVIDENCE/negative-test.txt"
 ```
 
 The subshell is deliberate: the `cd` ends with it, so the `tee` path stays

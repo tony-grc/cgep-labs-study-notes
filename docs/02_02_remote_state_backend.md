@@ -494,12 +494,14 @@ Expected: `AccessDenied`. A control you have not watched deny something is a con
 ### Capture the evidence the checklist asks for
 
 ```bash
-mkdir -p evidence/lab-2-2
+# evidence/ lives at the repository root, not in the workspace you are in
+EVIDENCE="$(git rev-parse --show-toplevel)/evidence/lab-2-2"
+mkdir -p "$EVIDENCE"
 {
   aws s3api get-bucket-encryption      --bucket "$BUCKET"
   aws s3api get-bucket-versioning      --bucket "$BUCKET"
   aws s3api get-public-access-block    --bucket "$BUCKET"
-} | tee evidence/lab-2-2/backend-verification.json
+} | tee "$EVIDENCE/backend-verification.json"
 ```
 
 It is not strictly one JSON document, and that is fine: the checklist wants the
