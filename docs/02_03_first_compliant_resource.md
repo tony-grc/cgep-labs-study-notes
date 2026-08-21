@@ -668,7 +668,7 @@ EOF
 Terraform silently prompts for both values on every `plan`, `apply` and
 `destroy`, and fails outright under `-input=false`, which is how CI runs.
 
-**If you set up `cgep.env` in Lab 0.1 Step 14, you already have these** as
+**If you set up `cgep.env` in Lab 0.1 Step 15, you already have these** as
 `TF_VAR_project_name` and `TF_VAR_environment`, and you can skip the file
 entirely. `source cgep.env` and Terraform finds them on its own.
 

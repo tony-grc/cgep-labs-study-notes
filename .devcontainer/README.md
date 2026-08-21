@@ -13,7 +13,7 @@ a Windows laptop, a Chromebook, or a Linux desktop.
 
 ## Running it
 
-**[Lab 0.1 Step 12a](../docs/00_01_prerequisites.md) is the walkthrough**, with
+**[Lab 0.1 Step 13a](../docs/00_01_prerequisites.md) is the walkthrough**, with
 the exact menu paths, what each prompt should say, and what to do when one does
 not appear. Two routes: a Codespace in the browser with nothing installed, or
 Docker plus VS Code's Dev Containers extension locally.

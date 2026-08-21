@@ -182,10 +182,33 @@ terraform import aws_iam_openid_connect_provider.github \
 
 ### Step 2 Repository variables
 
+`cgep.env` holds these values on your machine, and CI cannot read that file. It
+needs its own copy. Derive them from the environment rather than retyping, so
+the two cannot drift apart:
+
 ```bash
-gh variable set AWS_ROLE_ARN --body "arn:aws:iam::ACCOUNT:role/cgep-grc-gate" --repo YourOrg/YourRepo
-gh variable set TF_STATE_BUCKET --body "cgep-lab-tfstate-XXXXXXXX" --repo YourOrg/YourRepo
+source ../../cgep.env
+gh variable set AWS_ROLE_ARN     --body "arn:aws:iam::$(aws sts get-caller-identity --query Account --output text):role/cgep-grc-gate"
+gh variable set TF_STATE_BUCKET  --body "$TF_VAR_state_bucket"
 ```
+
+Run that from inside your repository and `gh` targets it automatically; add
+`--repo OWNER/NAME` only if you are somewhere else.
+
+> **Variables, not secrets, and the distinction is the lesson.** A role ARN and
+> a bucket name are configuration. They identify things; they do not grant
+> access to them. GitHub **secrets** are write-only and masked in logs, which is
+> right for a credential and actively unhelpful for a value you want to read in
+> a failed run. Putting non-secrets in `secrets` is a common habit and it
+> quietly trains people that everything is equally sensitive, which is how real
+> credentials end up treated casually.
+>
+> Notice what is **not** here: no access key, no secret key, no long-lived
+> credential of any kind. That is the point of the OIDC trust you just built.
+> The role ARN being public costs you nothing, because assuming it requires a
+> token that only your repository, on your ref, can obtain. If this lab had you
+> paste an access key into `secrets`, it would be teaching the opposite of what
+> it claims to teach.
 
 ### Step 3 The workflow
 

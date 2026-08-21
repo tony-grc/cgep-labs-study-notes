@@ -57,6 +57,40 @@ jobs:
                    -exec dirname {} \; | sort -u)
           exit $fail
 
+  no-secrets:
+    name: no account values committed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # "It is gitignored" is a hope, not a guarantee: `git add -f`, a rule
+      # edited later, or a fresh clone that predates the rule all defeat it.
+      # This is the guarantee. A student's portfolio repository inherits it.
+      - name: files that must never be committed
+        run: |
+          set -uo pipefail
+          fail=0
+          while IFS= read -r f; do
+            case "$f" in
+              cgep.env|*/cgep.env|*.tfvars|*.tfstate|*.tfstate.*|*/backend.hcl|*/evidence/*/state.json)
+                echo "::error file=$f::names your account or holds state; must not be committed"
+                fail=1 ;;
+            esac
+          done < <(git ls-files)
+          [ $fail -eq 0 ] && echo "No account-bearing files are tracked."
+          exit $fail
+
+      # Credentials, as opposed to account values. Terraform state is the usual
+      # way these reach a repository by accident.
+      - name: no credential material
+        run: |
+          set -uo pipefail
+          if git grep -nIE '(AKIA|ASIA)[A-Z0-9]{16}|-----BEGIN [A-Z ]*PRIVATE KEY' \
+               -- ':!*brand-fonts.css' ':!docs/*.pdf' > /tmp/hits 2>/dev/null; then
+            echo "::error::possible credential material committed"; cat /tmp/hits; exit 1
+          fi
+          echo "No credential patterns found in tracked files."
+
   opa:
     name: opa test + mutation
     runs-on: ubuntu-latest

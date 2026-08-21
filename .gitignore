@@ -33,11 +33,15 @@ docs/CGE-P_PDF_Build_Kit/out/
 # Backend configs hold real bucket names and key ARNs (account-specific)
 backend.hcl
 
-# Lab evidence output. state.json and the attestations carry the account ID,
-# bucket names and key ARNs, and this repository is meant to go public.
-# reference/lab-6-1/evidence/policy-catalog.json is committed deliberately
-# and does not match this pattern.
-**/evidence/lab-*/
+# Your evidence IS your portfolio: every lab's submission checklist asks for
+# evidence/lab-X-Y/ files, and the capstone is graded on a public repo. So it
+# is deliberately NOT ignored here.
+#
+# The one exception is Terraform state in any form. State records every
+# attribute the provider stored, including ones marked sensitive, and Lab 2.5
+# is built around that trap. Publish it deliberately if you have checked it,
+# never by accident.
+**/evidence/**/state.json
 
 # Reference material from other people (Slack clips, screen recordings).
 # Not ours to publish, and a stray 'git add -A' will otherwise sweep it in.

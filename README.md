@@ -14,12 +14,12 @@ counts.
 If you are beginning from nothing, do these in order.
 
 **1. Get a toolchain.** Open this repository in a container, either a Codespace
-in your browser or Docker locally. [Lab 0.1 Step 12a](docs/00_01_prerequisites.md)
+in your browser or Docker locally. [Lab 0.1 Step 13a](docs/00_01_prerequisites.md)
 is the walkthrough, including what to do when the prompt does not appear. If you
-would rather install the ten tools yourself, Step 12b covers that.
+would rather install the ten tools yourself, Step 13b covers that.
 
 **2. Verify it.** Run the check in
-[Lab 0.1 Step 13](docs/00_01_prerequisites.md). It prints a line per tool and
+[Lab 0.1 Step 14](docs/00_01_prerequisites.md). It prints a line per tool and
 ends in `PREREQS OK`. Do this before touching a cloud account, so a missing tool
 shows up as a failed check rather than as a half-applied Terraform run.
 
@@ -47,7 +47,7 @@ you start one and again when you write it up.
 
 ```
 docs/           Twelve lab guides, a plain-English companion, and an index,
-                as markdown and as PDFs, plus a 214-page bound edition.
+                as markdown and as PDFs, plus a 215-page bound edition.
 docs/diagrams/  A twelve page flow diagram deck, one per lab, plus the brief
                 that produced it and a checker that measures it.
 reference/      Eleven companion workspaces (Terraform, Rego, shell, OSCAL).
@@ -70,13 +70,13 @@ the image and pulling roughly 3 GB of tooling. A long quiet pause is the build
 working, not a hang. Later starts reuse the image and open in seconds.
 
 When the shell appears, run the verification from
-[Lab 0.1 Step 13](docs/00_01_prerequisites.md) as your first command. It prints
+[Lab 0.1 Step 14](docs/00_01_prerequisites.md) as your first command. It prints
 one line per tool and ends in `PREREQS OK`, which is how you know the
 environment is sound before you spend money in a cloud account.
 
 It builds natively on `amd64` and `arm64`, so it behaves the same on an Apple
 Silicon Mac, a Windows laptop and a Linux desktop. See
-[.devcontainer/README.md](.devcontainer/README.md). Lab 0.1 Step 12b still
+[.devcontainer/README.md](.devcontainer/README.md). Lab 0.1 Step 13b still
 documents the manual install for anyone who wants to see exactly what lands on
 their machine; that path is Ubuntu `amd64` only.
 

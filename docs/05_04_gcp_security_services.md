@@ -192,7 +192,7 @@ like a broken control rather than a policy that is deliberately only watching.
 Without the tfvars file Terraform prompts for all three values on every
 `plan`, `apply` and `destroy`, and fails outright under `-input=false`.
 
-**If `cgep.env` from Lab 0.1 Step 14 has `TF_VAR_gcp_project`,
+**If `cgep.env` from Lab 0.1 Step 15 has `TF_VAR_gcp_project`,
 `TF_VAR_github_org` and `TF_VAR_github_repo` filled in, skip the file.** Source
 it and Terraform picks them up.
 

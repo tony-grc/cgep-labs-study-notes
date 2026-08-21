@@ -450,12 +450,87 @@ gcloud billing budgets create \
 
 Needs `roles/billing.admin` on the billing account. If you do not have it, set the budget in the console; do not skip it. Lab 5.4's Data Access logs are the line item that can surprise you, at $0.50/GB ingested.
 
-## Part 3: The toolchain
+## Part 3: GitHub, and your own copy of this
+
+Everything you build gets committed, and the capstone is graded on a **public
+GitHub repository**, submitted as a URL plus the commit SHA you want scored. So
+the work has to live under your account from the first lab, not in a clone of
+someone else's repository that you cannot push to.
+
+### Step 12 Your account and your copy
+
+If you do not have a GitHub account, sign up at **https://github.com**. Free is
+enough for everything here, including Codespaces and Actions on a public repo.
+
+Then make your own copy of this repository. Do not just clone it: a clone points
+at someone else's remote and your first `git push` will be refused.
+
+**Use the template.** On the repository page choose **Use this template >
+Create a new repository**. Name it whatever you want your portfolio to be
+called, and make it **public** if you intend to submit it for the capstone.
+This gives you a clean repository with no fork relationship, which is what you
+want for work you are presenting as your own.
+
+If the template button is not offered, **Fork** does the same job; it just shows
+as forked from the original.
+
+Now clone **your** copy, not this one:
+
+```bash
+git clone https://github.com/YOUR_USER/YOUR_REPO.git
+cd YOUR_REPO
+```
+
+Check where a push would go. The URL should have your username in it:
+
+```bash
+git remote -v
+```
+
+### Step 12b Tell git who you are
+
+Commits carry a name and an email. If you have never set them, git either
+refuses to commit or attributes your work to something unhelpful.
+
+```bash
+git config --global user.name "Your Name"
+git config --global user.email "you@example.com"
+```
+
+Use the same address your GitHub account knows about, or GitHub will not link
+the commits to you and your contribution graph will stay empty.
+
+Inside a container these settings do not carry over from your machine, so set
+them there too the first time.
+
+### Step 12c Authenticate so you can push
+
+The easiest route, and `gh` is already in the container:
+
+```bash
+gh auth login
+```
+
+Choose **GitHub.com**, then **HTTPS**, and let it authenticate git for you.
+From a container with no browser, pick the device-code option it offers rather
+than the browser one.
+
+Verify:
+
+```bash
+gh auth status
+```
+
+Password authentication over HTTPS has not worked for years. If you skip this
+and try to push, you get an authentication failure that does not explain that a
+token, not a password, is what is wanted.
+
+## Part 4: The toolchain
 
 Ten tools, each with its own installer. There are two ways to get them, and
 the first one is strongly preferred unless you specifically want the practice.
 
-### Step 12a The container (recommended)
+### Step 13a The container (recommended)
 
 The repository ships a devcontainer with the whole toolchain pinned to the
 versions this course was written against. It builds natively on both `amd64`
@@ -486,19 +561,9 @@ You need three pieces first:
    and install the one published by Microsoft. Its identifier is
    `ms-vscode-remote.remote-containers`.
 
-Then get the code. If you use git:
-
-```bash
-git clone https://github.com/tony-grc/cgep-labs-study-notes.git
-cd cgep-labs-study-notes
-```
-
-That is this repository, the one these notes describe. The official course
-repository is `GRCEngClub/cgep-labs`; where the two differ, that one is what
-counts.
-
-If you do not, use **Code > Download ZIP** on the repository page and unzip it
-somewhere you will find again.
+You should already have your own copy from Part 3. If you skipped it, go back:
+cloning this repository directly leaves you unable to push, and your portfolio
+needs somewhere to live.
 
 Now the step that catches almost everyone:
 
@@ -539,7 +604,7 @@ is the same one.
 
 Either way you land in a shell with `terraform`, `aws`, `gcloud`, `opa`,
 `conftest`, `trivy`, `cosign`, `trestle`, `jq` and `gh` already present and on
-your `PATH`. Skip to Step 13 and verify. `AWS_PROFILE` is already set to
+your `PATH`. Skip to Step 14 and verify. `AWS_PROFILE` is already set to
 `cgep`; you still create the profile itself in Step 4 and still run
 `aws login`, because the container deliberately contains no credentials.
 
@@ -602,7 +667,7 @@ two named volumes, so nothing you care about lives in the container itself.
 named volumes above. Without them each container starts with an empty `~/.aws`
 and you will be logging in every time.
 
-### Step 12b Installing by hand
+### Step 13b Installing by hand
 
 Do this if you want to know exactly what lands on your machine, which is a
 reasonable thing to want in a security course.
@@ -714,7 +779,7 @@ pipx install compliance-trestle
 
 `gh`, the GitHub CLI, per [cli.github.com](https://cli.github.com), then `gh auth login`.
 
-### Step 13 Verify the whole toolchain
+### Step 14 Verify the whole toolchain
 
 ```bash
 #!/usr/bin/env bash
@@ -758,7 +823,7 @@ chmod +x scripts/check-prereqs.sh && bash scripts/check-prereqs.sh
 
 `PREREQS OK` means you are ready for Lab 2.2.
 
-## Part 4: Set your values once
+## Part 5: Set your values once
 
 Across the course you supply the same handful of values over and over.
 `project_name` is asked for by four labs, `aws_region` by five. Typing them
@@ -769,7 +834,7 @@ Terraform reads any environment variable named `TF_VAR_<variable>` as an input.
 So you can set every one of them once, in a file you source at the start of each
 session, and stop passing them to individual commands entirely.
 
-### Step 14 Create `cgep.env`
+### Step 15 Create `cgep.env`
 
 In the repository root:
 
@@ -815,7 +880,7 @@ committed, because it names your account and your repository:
 grep -qxF 'cgep.env' .gitignore || echo 'cgep.env' >> .gitignore
 ```
 
-### Step 15 Source it, every session
+### Step 16 Source it, every session
 
 ```bash
 source cgep.env
@@ -840,7 +905,7 @@ profile, but note that it only makes sense inside this repository:
 echo '[ -f ~/cgep-labs-study-notes/cgep.env ] && source ~/cgep-labs-study-notes/cgep.env' >> ~/.bashrc
 ```
 
-### Step 16 Add values as labs produce them
+### Step 17 Add values as labs produce them
 
 Some values do not exist until a lab creates them. Lab 2.2 produces the state
 bucket and its key; Lab 2.5 produces the evidence vault. Each of those labs
@@ -860,7 +925,7 @@ Reading them out of `terraform output` rather than copying them from your
 terminal is deliberate. Both strings contain your account ID and a random
 suffix, and transcription is exactly where this goes wrong.
 
-## Part 5: Habits that will save you
+## Part 6: Habits that will save you
 
 **Set `AWS_PROFILE` at the start of every session**, which `cgep.env` does for
 you. The `[profile cgep]` entry points at `--profile default`, because that is
@@ -882,7 +947,24 @@ aws sts get-caller-identity --query Arn --output text
 
 An `Arn` ending in `:root` means stop and re-authenticate as your IAM user.
 
-**Never commit credentials or account values.** The repository's `.gitignore` excludes `*.tfvars`, `*.tfstate` and `cgep.env` for this reason. All three name your account. Add a scanner before you need one.
+**Never commit credentials.** The repository's `.gitignore` excludes `*.tfvars`, `*.tfstate`, `backend.hcl` and `cgep.env` for this reason. Add a scanner before you need one.
+
+**Your evidence is your portfolio, so commit it.** Every lab's submission checklist asks for files under `evidence/lab-X-Y/`, and the capstone is graded on a public repository submitted by URL and commit SHA. Those files are the point. They are deliberately not ignored.
+
+Three things to be deliberate about before you make that repository public:
+
+- **Terraform state is the one real risk.** State records every attribute the provider stored, including ones marked sensitive, which is the trap Lab 2.5 is built around. `evidence/**/state.json` is gitignored for that reason. When a checklist asks for it, look at the file first and then add it on purpose:
+
+  ```bash
+  grep -iE 'password|secret|private_key|token' evidence/lab-2-3/state.json
+  git add -f evidence/lab-2-3/state.json
+  ```
+
+  For Lab 2.3 that file holds no secrets, which is why the checklist asks for it. Do not assume the same of a workspace that manages a database or a key pair.
+
+- **Your account ID will be in there**, in every ARN, and there is no avoiding it if you publish evidence at all. It is not a credential and it is not a breach, but it does help someone enumerate your roles. Decide once whether you are comfortable with that; if you are not, keep the repository private and share it with reviewers directly.
+
+- **Bucket names are globally unique and yours.** Publishing them tells the world which buckets to probe. The controls you built are exactly what makes that survivable, which is worth saying in your write-up rather than hiding.
 
 **Destroy what you finish**, except the Lab 2.2 state backend, which everything else depends on. Destroy that last, after Lab 6.1, and only after every other workspace is gone. Deleting the state bucket while resources still exist strands them: no state means Terraform can no longer destroy them, and you are deleting things by hand in the console.
 

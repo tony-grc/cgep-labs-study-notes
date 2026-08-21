@@ -453,7 +453,7 @@ ID and a random suffix. Read them out rather than retyping them:
 source ../../cgep.env
 ```
 
-If you have not created `cgep.env`, Lab 0.1 Step 14 sets it up. It is the file
+If you have not created `cgep.env`, Lab 0.1 Step 15 sets it up. It is the file
 you source at the start of every session, and it is gitignored because it names
 your account.
 
