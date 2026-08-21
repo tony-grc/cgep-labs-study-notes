@@ -1,19 +1,22 @@
 # Diagram deck: design prompt
 
-Working note. Paste everything below the rule into a fresh Claude session, and
-attach `brand-fonts.css` from this directory.
+Working note. `workspace-by-step-v5.pdf` beside this file is the current deck
+and it passes `check-deck.py`. This brief is what produced it. To make another,
+paste everything below the rule into a fresh Claude session and attach
+`brand-fonts.css` from this directory.
 
-Four attempts so far, each fixing the last one's problem and finding a new one.
-v1 was a real flow diagram but its lane labels changed every page and its
-content was thin. v2 was denser with a consistent frame but drifting toward
-text. v3 fixed the facts and lost the diagram entirely, because the brief asked
-for one frame on the left and another on the right, and a left/right split
-turns a flow into two columns of prose. v4 is structurally right at last, and
-unreadable in places: measuring its text boxes found thirteen severe
-overprints across nine of twelve pages, and 97 percent of its type sitting in a
-five point band, which is why it reads as flat and undigestible.
+It took five attempts, and the earlier drafts are not kept, only what they
+taught. The first was a real flow diagram whose lane labels changed on every
+page and whose content was thin. The second was denser with a consistent frame
+but drifting toward text. The third fixed every fact and lost the diagram
+entirely, because the brief asked for one frame on the left and another on the
+right, and a left/right split turns a flow into two columns of prose. The
+fourth was structurally right and unreadable in places: measuring its text
+boxes found genuine overprinting on nine of twelve pages, and 97 percent of its
+type inside a five point band, which is why it read as flat.
 
-Everything below carries those lessons as hard numbers rather than as taste.
+Everything below carries those lessons as hard numbers rather than as taste,
+and `check-deck.py` measures a deck against every one of them.
 
 ---
 
@@ -86,7 +89,15 @@ reader cannot perceive 9.3 against 10.0 as a hierarchy; it reads as
 inconsistency. With everything at one visual weight, nothing directs the eye,
 so the whole page has to be read. That is what made it undigestible.
 
-**Use exactly five sizes on the page, and only three inside the diagram:**
+**One body size must dominate.** This is the rule that matters, and it is not
+the same as using few sizes. The flat draft and the readable one both used five
+body sizes inside a five point band. What separated them was distribution: the
+flat one spread body text across three sizes of similar weight, so nothing told
+the eye where to start, while the readable one puts about 70 percent of body
+text at a single size and uses the rest as accents. **At least 55 percent of
+body text at one size**, checked by `check-deck.py`.
+
+Within that, aim for roughly:
 
 | Element | Size | Weight | Colour |
 |---|---|---|---|
@@ -96,8 +107,10 @@ so the whole page has to be read. That is what made it undigestible.
 | edge label | 10pt | regular | body |
 | caption | 8pt | regular | muted |
 
-Nothing between 8 and 10, and nothing between 10 and 12. The gaps are the
-hierarchy. If something seems to need a size not on this list, it is a caption.
+Treat those as proportions rather than exact points; a deck rendered about 13
+percent larger throughout reads the same. What is not negotiable is that one
+size carries the body and the others stay accents. If something seems to need
+a size not on this list, it is probably a caption.
 
 Running header, lane headers, and the PRODUCES / COST / TIME row use the 8pt
 caption size, letterspaced, in muted.

@@ -22,8 +22,14 @@ from pathlib import Path
 # From the brief. Body budgets exclude header, title, summary and footer.
 PAGES, PT_W, PT_H = 12, 792, 612
 BODY_WORDS, BODY_OBJECTS, MAX_HOPS = 60, 30, 4
-SIZES = {29.0, 20.0, 12.0, 10.0, 8.0}
-TOL = 0.6                      # pt, for rounding in the PDF
+# A list of permitted sizes turned out to measure the wrong thing. The flat,
+# undigestible draft and the readable one both used five body sizes inside a
+# ~5pt band. What separated them was DISTRIBUTION: the flat one spread its body
+# text across three sizes of similar weight (dominant size only 41%), so the eye
+# had no default and the whole page had to be read. The readable one puts 69% at
+# one size and uses the others as accents.
+BODY_MAX_PT = 14.0             # above this is headings, not body
+DOMINANT_MIN = 0.55            # share of body text the most-used size must carry
 BODY_TOP, BODY_BOT = 0.20, 0.80   # fraction of page height
 OK_FONTS = ("Inter", "JetBrainsMono")
 
@@ -47,9 +53,27 @@ def load_sizes(pdf, tmp):
     return used
 
 
+def load_words(pdf, tmp):
+    """One entry per WORD. Overlap has to be judged on glyph boxes: a line box
+    around a 33pt numeral and a 23pt title extends well below the numeral, and
+    reads as colliding with the next line when nothing visibly touches."""
+    subprocess.run(["pdftotext", "-bbox", pdf, f"{tmp}/w.xml"], check=True)
+    root = ET.parse(f"{tmp}/w.xml").getroot()
+    tag = lambda e: e.tag.split("}")[-1]
+    pages = []
+    for pg in root.iter():
+        if tag(pg) != "page":
+            continue
+        items = [{"box": (float(w.get("xMin")), float(w.get("yMin")),
+                          float(w.get("xMax")), float(w.get("yMax"))),
+                  "text": w.text.strip()}
+                 for w in pg.iter() if tag(w) == "word" and (w.text or "").strip()]
+        pages.append(items)
+    return pages
+
+
 def load_lines(pdf, tmp):
-    """One entry per rendered LINE, which is the unit the brief means by a text
-    element. pdftohtml would give one per word and inflate every count."""
+    """One entry per rendered LINE, for word counts and body/footer zoning."""
     subprocess.run(["pdftotext", "-bbox-layout", pdf, f"{tmp}/d.xml"], check=True)
     root = ET.parse(f"{tmp}/d.xml").getroot()
     tag = lambda e: e.tag.split("}")[-1]
@@ -73,19 +97,21 @@ def load_lines(pdf, tmp):
     return pages
 
 
+# Word boxes of adjacent lines touch by a few points: descenders of one line
+# against ascenders of the next. Measured across two decks, that seam is always
+# <= 4pt, while genuine overprinting ran 5 to 15pt. 5pt is the boundary.
+SEAM_PT = 5
+
+
 def overlaps(a, b):
-    """True 2-D overlap. Ignores the ~3pt seam between lines of one wrapped
-    label, which is a rendering artefact and not a visible collision."""
+    """Genuine overprint between two WORD boxes, or None for a line seam."""
     ax0, ay0, ax1, ay1 = a["box"]
     bx0, by0, bx1, by1 = b["box"]
     ix, iy = min(ax1, bx1) - max(ax0, bx0), min(ay1, by1) - max(ay0, by0)
-    if ix <= 4 or iy <= 4:
-        return None
-    if abs(ax0 - bx0) < 12 and iy < 8:       # same wrapped block
+    if ix <= 1.5 or iy < SEAM_PT:
         return None
     smaller = min((ax1 - ax0) * (ay1 - ay0), (bx1 - bx0) * (by1 - by0)) or 1
-    frac = ix * iy / smaller
-    return (round(frac * 100), round(ix), round(iy)) if frac > 0.20 and iy >= 10 else None
+    return (round(ix * iy / smaller * 100), round(ix), round(iy))
 
 
 def main():
@@ -113,6 +139,7 @@ def main():
 
     with tempfile.TemporaryDirectory() as tmp:
         pages = load_lines(pdf, tmp)
+        word_pages = load_words(pdf, tmp)
         used = load_sizes(pdf, tmp)
 
     total_ov = 0
@@ -122,8 +149,9 @@ def main():
         words = sum(len(t["text"].split()) for t in body)
         hops = len({m.group(1) for t in body
                     if (m := re.match(r"^([1-9])(?:\s|$)", t["text"]))})
-        ovs = [o for j in range(len(items)) for k in range(j + 1, len(items))
-               if (o := overlaps(items[j], items[k]))]
+        w = word_pages[i - 1] if i - 1 < len(word_pages) else []
+        ovs = [o for j in range(len(w)) for k in range(j + 1, len(w))
+               if (o := overlaps(w[j], w[k]))]
         total_ov += len(ovs)
         flag = ""
         if words > BODY_WORDS:      flag += " words"
@@ -140,12 +168,19 @@ def main():
         for frac, ix, iy in ovs[:3]:
             fails.append(f"p{i}: text overprint {frac}% ({ix}x{iy}pt)")
 
+    body = {pt: n for pt, n in used.items() if pt <= BODY_MAX_PT}
+    total = sum(body.values()) or 1
+    top_pt, top_n = max(body.items(), key=lambda kv: kv[1])
+    share = top_n / total
     print(f"\n  type sizes used ({len(used)}):")
-    for s, c in sorted(used.items(), reverse=True):
-        ok = any(abs(s - a) <= TOL for a in SIZES)
-        print(f"    {s:5.1f}pt x{c:<5} {'' if ok else '  <- not in the scale'}")
-        if not ok:
-            fails.append(f"type size {s}pt is not one of {sorted(SIZES, reverse=True)}")
+    for pt, c in sorted(used.items(), reverse=True):
+        mark = "  <- dominant body size" if pt == top_pt else ""
+        print(f"    {pt:5.1f}pt x{c:<5}{mark}")
+    print(f"\n  body hierarchy: {top_pt}pt carries {share:.0%} of body text "
+          f"(needs {DOMINANT_MIN:.0%})")
+    if share < DOMINANT_MIN:
+        fails.append(f"no dominant body size: largest share is {share:.0%} at "
+                     f"{top_pt}pt, so the eye has no default and the page reads flat")
 
     print()
     if fails:

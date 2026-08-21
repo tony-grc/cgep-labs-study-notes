@@ -14,6 +14,8 @@ counts.
 ```
 docs/           Twelve lab guides, a plain-English companion, and an index,
                 as markdown and as PDFs, plus a 207-page bound edition.
+docs/diagrams/  A twelve page flow diagram deck, one per lab, plus the brief
+                that produced it and a checker that measures it.
 reference/      Eleven companion workspaces (Terraform, Rego, shell, OSCAL).
 .devcontainer/  The whole toolchain, pinned, for any operating system.
 ```
