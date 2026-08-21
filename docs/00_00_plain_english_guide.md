@@ -517,6 +517,22 @@ Nobody stores a long-lived key, and the timestamp lives in a public log outside 
 
 The `.sig.bundle` file packs the signature, the certificate, and the log entry together so verification needs one file.
 
+**"Containing your identity" is worth reading twice.** In the pipeline, that
+identity is the repository, workflow and ref, which is what you want: it names
+the process that produced the artifact rather than whoever happened to be at a
+keyboard. But if you run `cosign sign-blob` from your own machine, it is the
+email address of the account you log in with, and it goes into Rekor.
+
+Rekor being append-only is the property that makes signatures trustworthy, and
+it is also the property that means **you cannot take that back**. An email
+address you publish there is public permanently. Cosign warns you before it
+proceeds, and the warning is literal rather than boilerplate.
+
+So sign from CI, where the identity is a workflow. If you want to try it by
+hand, use an address you are content to have publicly associated with a
+throwaway lab artifact forever. This is the rare case where the immutability the
+whole curriculum is built around works against you.
+
 ### 4.11 OSCAL
 
 Five document types. You will use three.

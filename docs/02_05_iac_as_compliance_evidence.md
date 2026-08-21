@@ -540,14 +540,50 @@ That one **succeeds**, because without `--version-id` it writes a delete marker 
 
 ### Step 8 Optional preview: sign the bundle
 
-Lab 4.4 does this properly with GitHub OIDC. From a laptop it needs a browser for the OIDC flow:
+**Read this before running it. Most people should skip this step.**
+
+Object Lock makes the bundle immutable. It does not prove who made it or when.
+That is what signing adds, and it is the whole subject of Lab 4.4.
+
+The command below signs as **you**, and that has a consequence you cannot take
+back:
 
 ```bash
 cosign sign-blob --yes --bundle bundle.sig.bundle /tmp/bundle-test-001.tar.gz
-aws s3 cp bundle.sig.bundle "s3://$VAULT/runs/test-001/bundle.sig.bundle"
 ```
 
-Object Lock makes the bundle immutable. It does not prove who made it or when. That is what signing adds, and it is the whole subject of Lab 4.4.
+Cosign opens a browser, you log in with GitHub, Google or Microsoft, and Fulcio
+issues a certificate naming **the email address of the account you used**. That
+certificate and its signature are written to Rekor, a **public transparency log
+that is append-only by design**. Cosign says so before it proceeds:
+
+```
+This information will be used for signing this artifact and will be stored in
+public transparency logs and cannot be removed later
+```
+
+That is not a warning about a preference. It means your personal email address
+becomes a permanent public record, attached to a throwaway lab artifact, and no
+one can delete it afterward. Transparency logs are immutable for the same reason
+your evidence vault is, which is a good property in the right place and a poor
+trade here.
+
+**Lab 4.4 does it the way it should be done.** There, signing happens inside the
+pipeline, and Fulcio issues a certificate whose subject is the **repository,
+workflow and ref** rather than a human:
+
+```
+https://github.com/OWNER/REPO/.github/workflows/grc-gate.yml@refs/heads/main
+```
+
+Nothing personal enters the log, the identity is more useful for auditing
+because it names the process rather than whoever happened to be at a keyboard,
+and there is no long-lived credential involved either. Waiting for 4.4 costs you
+nothing and teaches the correct shape.
+
+If you do want to see a signature today, use a throwaway account, or sign
+something you do not mind being publicly associated with forever. Not your lab
+evidence, and not with the address you use for work.
 
 ### Record the vault in `cgep.env`
 
