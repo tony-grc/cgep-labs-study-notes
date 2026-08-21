@@ -43,6 +43,34 @@ Two ways to get one:
 | **New member account in an Organization** (recommended) | You have or can create an AWS Organization. Gives you a clean account with consolidated billing and the option to attach an SCP later. |
 | **A brand new standalone account** | You have no Organization and do not want one. Works fine. You manage its billing separately. |
 
+#### If you have no AWS account at all
+
+Sign up at **https://aws.amazon.com** and choose **Create an AWS Account**. You
+will need three things:
+
+- **An email address** nobody has used for an AWS account before. If you plan to
+  make more than one account later, use the `you+cgep-lab@example.com` form now,
+  because AWS requires a unique address per account and most mail providers
+  deliver plus-addressed mail to the same inbox.
+- **A payment card.** AWS asks for one even on the free tier and places a small
+  temporary authorisation on it, usually about a dollar, which it releases.
+- **A phone** for verification.
+
+Choose the **Basic support plan**, which is free. Everything in this curriculum
+works on it.
+
+The email and password you sign up with become the **root user** of the new
+account. That account can do anything, including closing itself and changing
+billing, so Step 2 immediately locks it down and you never use it again for
+day to day work.
+
+**About the free tier.** New accounts get twelve months of free-tier allowances
+plus some always-free services. It does not cover everything this curriculum
+uses. KMS keys are about a dollar per month each and are not free-tier eligible,
+so Step 5's budget alarm is doing real work, not ceremony.
+
+#### If you already have an AWS Organization
+
 Creating a member account in an existing Organization:
 
 ```bash
@@ -299,6 +327,39 @@ Labs 2.4, 3.3, and 5.4 are GCP. You can complete the AWS track and the capstone 
 
 ### Step 7 Create the project and attach billing
 
+#### If you have no Google Cloud account at all
+
+Go to **https://cloud.google.com** and click **Get started for free**. You sign
+in with a Google account, so if you already have Gmail you have the identity
+half already. You still need:
+
+- **A payment card**, for the same reason as AWS. Google places a small
+  temporary authorisation and releases it.
+- **A phone** for verification.
+
+New accounts get a trial credit, $300 at the time of writing, valid for ninety
+days. That covers this entire curriculum many times over. Google will not charge
+you when the trial ends unless you explicitly upgrade to a paid account, so the
+worst case is that things stop working rather than that you get a bill.
+
+**Two things that confuse people, and they are worth getting straight now:**
+
+A **billing account** is where the payment method lives. A **project** is where
+resources live. They are separate objects, and one billing account can pay for
+many projects. Creating a project does not attach billing automatically, which
+is why Step 7 links them explicitly below.
+
+There is also an **organization**, which you get only with Google Workspace or
+Cloud Identity. A personal account has none, and that is fine: every GCP lab
+here works at project scope. Lab 5.4 says so explicitly.
+
+When signup finishes you will have a billing account, usually named
+*My Billing Account*. Find its ID under **Billing** in the console, or with
+`gcloud billing accounts list` once the CLI is installed. It looks like
+`01DBB6-ECB143-6DDE9B`.
+
+#### Creating the project
+
 ```bash
 gcloud auth login
 
@@ -428,8 +489,13 @@ You need three pieces first:
 Then get the code. If you use git:
 
 ```bash
-git clone https://github.com/GRCEngClub/cgep-labs.git
+git clone https://github.com/tony-grc/cgep-labs-study-notes.git
+cd cgep-labs-study-notes
 ```
+
+That is this repository, the one these notes describe. The official course
+repository is `GRCEngClub/cgep-labs`; where the two differ, that one is what
+counts.
 
 If you do not, use **Code > Download ZIP** on the repository page and unzip it
 somewhere you will find again.
@@ -466,7 +532,8 @@ later starts reuse the image and open in seconds. You can watch it by clicking
 
 When it finishes, the green box at the bottom left of VS Code reads
 **Dev Container: CGE-P Labs**, and a terminal there starts you in
-`/workspaces/cgep-labs`. That path is the same folder as on your own machine:
+`/workspaces/cgep-labs-study-notes`. That path is the same folder as on your
+own machine:
 edits inside the container are edits to your real files, and your git history
 is the same one.
 
@@ -509,17 +576,25 @@ bare `docker run` gives you a container with none of your files in it and
 nothing that survives exit. You have to mount the repository and the credential
 volumes yourself:
 
+Build it once, giving it a name you can refer to:
+
+```bash
+docker build -t cgep-labs .devcontainer
+```
+
+Then run it, from the repository folder:
+
 ```bash
 docker run --rm -it \
-  -v "$PWD":/workspaces/cgep-labs \
+  -v "$PWD":/workspaces/cgep-labs-study-notes \
   -v cgep-aws:/home/vscode/.aws \
   -v cgep-gcloud:/home/vscode/.config/gcloud \
-  -w /workspaces/cgep-labs \
+  -w /workspaces/cgep-labs-study-notes \
   -e AWS_PROFILE=cgep \
   cgep-labs
 ```
 
-Run that from the repository folder. `--rm` throws the container away when you
+`--rm` throws the container away when you
 exit, which is fine: your files are on your machine and your logins are in the
 two named volumes, so nothing you care about lives in the container itself.
 

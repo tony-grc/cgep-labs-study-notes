@@ -9,11 +9,45 @@ course. This is not.** It is one person's working through of it, shared in case
 the reasoning is useful. Where the two differ, the official repo is the one that
 counts.
 
+## Start here
+
+If you are beginning from nothing, do these in order.
+
+**1. Get a toolchain.** Open this repository in a container, either a Codespace
+in your browser or Docker locally. [Lab 0.1 Step 12a](docs/00_01_prerequisites.md)
+is the walkthrough, including what to do when the prompt does not appear. If you
+would rather install the ten tools yourself, Step 12b covers that.
+
+**2. Verify it.** Run the check in
+[Lab 0.1 Step 13](docs/00_01_prerequisites.md). It prints a line per tool and
+ends in `PREREQS OK`. Do this before touching a cloud account, so a missing tool
+shows up as a failed check rather than as a half-applied Terraform run.
+
+**3. Set up accounts and budget alarms.** The rest of
+[Lab 0.1](docs/00_01_prerequisites.md): an AWS sandbox, short-lived credentials,
+and a GCP project if you intend to do the GCP labs. **Set the budget alarms
+before your first apply.** KMS keys bill whether you use them or not, and they
+keep billing through the deletion window after you schedule them.
+
+**4. Read the companion.** [The Plain English
+Guide](docs/00_00_plain_english_guide.md) explains where every constant in the
+labs comes from and which choices are actually yours. It creates nothing and is
+not a lab. Read it first or keep it open beside you.
+
+**5. Work the labs in order.** [docs/README.md](docs/README.md) has the reading
+order and what each lab produces. Each one states its prerequisites, its cost,
+how to verify it worked, and how to clean it up. Do the cleanup: destroying the
+same day is the difference between five dollars and fifty.
+
+Each lab also has a one-page diagram in
+[docs/diagrams/](docs/diagrams/workspace-by-step-v5.pdf), worth a glance before
+you start one and again when you write it up.
+
 ## What's here
 
 ```
 docs/           Twelve lab guides, a plain-English companion, and an index,
-                as markdown and as PDFs, plus a 209-page bound edition.
+                as markdown and as PDFs, plus a 211-page bound edition.
 docs/diagrams/  A twelve page flow diagram deck, one per lab, plus the brief
                 that produced it and a checker that measures it.
 reference/      Eleven companion workspaces (Terraform, Rego, shell, OSCAL).
