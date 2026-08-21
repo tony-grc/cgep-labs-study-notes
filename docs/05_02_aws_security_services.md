@@ -460,8 +460,7 @@ mkdir -p evidence/lab-5-2
 aws athena start-query-execution \
   --work-group cgep-grc \
   --query-string "$(cat queries/au6-vault-access.sql)" \
-  --query-execution-context Database=cgep_grc \
- 
+  --query-execution-context Database=cgep_grc
 ```
 
 **AU-6 is a process, not a resource.** Running the query once satisfies nothing. What satisfies AU-6 is: the query exists, it runs on a defined cadence, a named human reviews the output, and the review is recorded. Schedule it (EventBridge on a weekly rule is enough for the capstone), write the output into your evidence vault, and name the reviewer in your write-up.

@@ -227,6 +227,33 @@ jobs:
       # it sits inside eval "$(...)", produces no output and no obvious cause.
       # The failure then surfaces much later as an unrelated credentials
       # error. Placeholders in runnable lines must be plain tokens.
+      # A block whose last meaningful line ends in a backslash is a command
+      # waiting for an argument that never comes. `bash -n` passes it, because
+      # the file still has the trailing blank line that terminates it, but a
+      # terminal trims trailing whitespace on paste and the learner is left
+      # staring at a `>` continuation prompt with no error to search for.
+      - name: no dangling line continuations
+        run: |
+          set -uo pipefail
+          fail=0
+          while IFS= read -r f; do
+            out=$(python3 - "$f" <<'PY'
+          import re, sys
+          f = sys.argv[1]
+          src = open(f).read()
+          for m in re.finditer(r'^```bash\n(.*?)^```', src, re.S | re.M):
+              lines = m.group(1).split("\n")
+              while lines and not lines[-1].strip():
+                  lines.pop()
+              if lines and lines[-1].rstrip().endswith("\\"):
+                  print(f"{f}:{src[:m.start()].count(chr(10)) + 1}: block ends mid-continuation: {lines[-1]!r}")
+          PY
+          )
+            if [ -n "$out" ]; then echo "$out" | while IFS= read -r l; do echo "::error::$l"; done; fail=1; fi
+          done < <(find docs -name '*.md')
+          [ $fail -eq 0 ] && echo "No bash block ends in a dangling continuation."
+          exit $fail
+
       - name: no angle-bracket placeholders in runnable commands
         run: |
           set -uo pipefail

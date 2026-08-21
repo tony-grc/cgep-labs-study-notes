@@ -474,11 +474,15 @@ Three deliberate details beyond the state guard. The bundle tarball is built ins
 chmod +x scripts/capture-evidence.sh
 
 bash scripts/capture-evidence.sh \
-  --workspace ../compliant-s3 \
+  --workspace ../lab-2-3 \
   --run-id    test-001 \
-  --vault     "$VAULT" \
- 
+  --vault     "$VAULT"
 ```
+
+`../lab-2-3` is the workspace you applied in Lab 2.3. If you have built your
+own repository following the capstone layout, the same workspace lives at
+`terraform/primitives/compliant-s3`, and you pass that path instead. The script
+cares about finding a Terraform workspace, not about where you keep it.
 
 Receipt:
 
@@ -508,8 +512,7 @@ This is the lesson.
 ```bash
 aws s3api delete-object --bucket "$VAULT" \
   --key runs/test-001/bundle.tar.gz \
-  --version-id "<base64-version-id>" \
- 
+  --version-id "<base64-version-id>"
 ```
 
 ```
@@ -522,8 +525,7 @@ That rejection is the proof. The lesson is not that S3 has a feature called Obje
 Try one more thing, and notice the difference:
 
 ```bash
-aws s3api delete-object --bucket "$VAULT" --key runs/test-001/bundle.tar.gz \
- 
+aws s3api delete-object --bucket "$VAULT" --key runs/test-001/bundle.tar.gz
 ```
 
 That one **succeeds**, because without `--version-id` it writes a delete marker rather than removing the object. The object is still there, still locked, still retrievable by version. Delete markers are how a versioned bucket says "hidden," not "gone." An auditor who does not know this will believe evidence was destroyed; an engineer who does knows where to look.
