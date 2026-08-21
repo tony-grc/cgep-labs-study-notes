@@ -13,23 +13,17 @@ a Windows laptop, a Chromebook, or a Linux desktop.
 
 ## Running it
 
-**In a browser.** Nothing to install: from the repository page,
-**Code > Codespaces > Create codespace**.
+**[Lab 0.1 Step 12a](../docs/00_01_prerequisites.md) is the walkthrough**, with
+the exact menu paths, what each prompt should say, and what to do when one does
+not appear. Two routes: a Codespace in the browser with nothing installed, or
+Docker plus VS Code's Dev Containers extension locally.
 
-**Locally.** Docker plus VS Code with the Dev Containers extension, then
-**Reopen in Container**.
+The short version for anyone who has done this before: open the repository
+folder on its own, not a parent directory and not a multi-root workspace, then
+**Reopen in Container**. First start takes a few minutes while it builds.
 
-**Either way, the first start takes a few minutes.** It builds the image and
-pulls roughly 3 GB of tooling; a long quiet pause is the build working, not a
-hang. Subsequent starts reuse the image and are quick.
-
-Your first command should be the verification block from Lab 0.1 Step 13. It
-prints a line per tool and ends in `PREREQS OK`. Do that before touching a
-cloud account, so a missing tool surfaces as a failed check rather than as a
-half-applied Terraform run.
-
-There are no images to pull: the repository ships the Dockerfile, and your
-machine or your Codespace builds from it. Nothing is published to a registry.
+There are no images to pull. The repository ships the Dockerfile and your
+machine or your Codespace builds from it; nothing is published to a registry.
 
 ## What is in it
 

@@ -401,19 +401,74 @@ versions this course was written against. It builds natively on both `amd64`
 and `arm64`, which matters: every Mac sold since 2020 is `arm64`, and the
 manual instructions below are `amd64` only.
 
-Two ways to run it, from the same definition:
+There are two ways to run it from the same definition. Pick one.
 
-- **In your browser.** On the repository page, press `.` or use
-  **Code > Codespaces > Create codespace**. Nothing to install, and GitHub's
-  free tier covers far more than this course needs. This is the answer if you
-  are on Windows, on a locked-down laptop, or simply do not want ten new
-  binaries on your machine.
-- **Locally.** Install Docker and VS Code with the Dev Containers extension,
-  open the repository, and choose **Reopen in Container**.
+#### Option 1: in your browser, nothing installed
+
+On the repository page on GitHub, click **Code**, choose the **Codespaces**
+tab, then **Create codespace on main**. That is the whole thing. GitHub builds
+the container on its own machines and gives you VS Code in a browser tab.
+
+This is the answer if you are on Windows, on a work laptop you cannot install
+software on, or you simply do not want ten new binaries on your machine. The
+free tier covers far more than this course needs.
+
+#### Option 2: on your own machine
+
+You need three pieces first:
+
+1. **Docker.** Install Docker Desktop and start it. It must be *running*, not
+   merely installed; the whale icon should be in your menu bar or system tray.
+2. **VS Code.**
+3. **The Dev Containers extension.** In VS Code open the Extensions panel
+   (`Ctrl+Shift+X`, or `Cmd+Shift+X` on a Mac), search for **Dev Containers**,
+   and install the one published by Microsoft. Its identifier is
+   `ms-vscode-remote.remote-containers`.
+
+Then get the code. If you use git:
+
+```bash
+git clone https://github.com/GRCEngClub/cgep-labs.git
+```
+
+If you do not, use **Code > Download ZIP** on the repository page and unzip it
+somewhere you will find again.
+
+Now the step that catches almost everyone:
+
+> **Open the repository folder itself, on its own.**
+> **File > Open Folder**, then select the folder that contains `README.md` and
+> `.devcontainer`. Not the folder above it, and not a saved multi-root
+> workspace containing several projects.
+
+VS Code only offers to reopen in a container when `.devcontainer` sits at the
+top level of what you have open. Open your whole projects directory, or a
+workspace holding six repositories, and it will not find the configuration and
+will not offer anything.
+
+With the folder open, a prompt appears in the bottom right:
+**"Folder contains a Dev Container configuration file. Reopen folder to develop
+in a container."** Click **Reopen in Container**.
+
+If the prompt does not appear, press `Ctrl+Shift+P` (`Cmd+Shift+P` on a Mac),
+type **Dev Containers: Reopen in Container**, and press Enter.
+
+> **If VS Code offers "Add Dev Container Configuration Files", say no.** That
+> means it did not find the existing configuration, and it is offering to
+> create a brand new empty one. Accepting gives you a second, generic container
+> that does not have any of the tools in it. Close the dialog and check you
+> opened the repository folder on its own, per the box above.
 
 **The first start takes a few minutes.** It is building the image and pulling
 roughly 3 GB of tooling. A long quiet pause is the build working, not a hang;
-later starts reuse the image and open in seconds.
+later starts reuse the image and open in seconds. You can watch it by clicking
+**Starting Dev Container (show log)** in the notification.
+
+When it finishes, the green box at the bottom left of VS Code reads
+**Dev Container: CGE-P Labs**, and a terminal there starts you in
+`/workspaces/cgep-labs`. That path is the same folder as on your own machine:
+edits inside the container are edits to your real files, and your git history
+is the same one.
 
 Either way you land in a shell with `terraform`, `aws`, `gcloud`, `opa`,
 `conftest`, `trivy`, `cosign`, `trestle`, `jq` and `gh` already present and on
@@ -427,6 +482,50 @@ your `PATH`. Skip to Step 13 and verify. `AWS_PROFILE` is already set to
 > shows you. Everything else behaves identically. Your `~/.aws` and gcloud
 > config live on named volumes, so rebuilding the container does not cost you
 > another login.
+
+The same applies on the GCP side, and there it bites twice, because
+`gcloud auth login` and `gcloud auth application-default login` each open a
+browser separately. Add `--no-launch-browser` to both. This is covered in
+Step 9.
+
+#### When the container does not cooperate
+
+**"Reopen in Container" is not offered anywhere.** Three causes, in order of
+likelihood. You opened the wrong folder, so re-read the box above. The Dev
+Containers extension is not installed. Or you have a multi-root workspace open,
+which you can tell because the Explorer heading reads something like
+`MYSTUFF (WORKSPACE)` instead of the repository name.
+
+**It offers to add configuration files instead.** Same cause, same fix. Say no.
+
+**An error mentioning Docker, the daemon, or a socket.** Docker Desktop is not
+running, or cannot be reached. Start it and wait for the whale icon to settle.
+On Linux, note that a VS Code installed as a snap or flatpak is sandboxed and
+sometimes cannot see Docker Desktop's socket at all; if that is your situation,
+the `.deb`/`.rpm` build of VS Code avoids it.
+
+**You want a shell without VS Code.** Running the image directly works, but a
+bare `docker run` gives you a container with none of your files in it and
+nothing that survives exit. You have to mount the repository and the credential
+volumes yourself:
+
+```bash
+docker run --rm -it \
+  -v "$PWD":/workspaces/cgep-labs \
+  -v cgep-aws:/home/vscode/.aws \
+  -v cgep-gcloud:/home/vscode/.config/gcloud \
+  -w /workspaces/cgep-labs \
+  -e AWS_PROFILE=cgep \
+  cgep-labs
+```
+
+Run that from the repository folder. `--rm` throws the container away when you
+exit, which is fine: your files are on your machine and your logins are in the
+two named volumes, so nothing you care about lives in the container itself.
+
+**Everything works but your cloud login is gone.** Check you are using the
+named volumes above. Without them each container starts with an empty `~/.aws`
+and you will be logging in every time.
 
 ### Step 12b Installing by hand
 
