@@ -544,11 +544,15 @@ Object Lock makes the bundle immutable. It does not prove who made it or when. T
 Lab 5.2 scopes CloudTrail data events to this vault, and needs its ARN:
 
 ```bash
-{
-  echo "export TF_VAR_evidence_vault_arn=arn:aws:s3:::$(terraform output -raw vault_name)"
-} >> ../../../cgep.env
+vault=$(terraform output -raw vault_name) &&
+  echo "export TF_VAR_evidence_vault_arn=arn:aws:s3:::$vault" >> ../../../cgep.env
 source ../../../cgep.env
 ```
+
+**Do this after the apply, not after the plan.** Outputs do not exist until the
+resources do. The `&&` guard is what stops a premature run appending Terraform's
+"No outputs found" warning into `cgep.env`, where sourcing the file then tries to
+execute it.
 
 ## Verification
 
