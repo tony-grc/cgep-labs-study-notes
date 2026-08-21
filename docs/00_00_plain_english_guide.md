@@ -133,6 +133,16 @@ The thing worth knowing, because it looks like magic and is not: the repository
 folder is *mounted* into the container rather than copied. Files you edit inside
 are your real files. Delete the container and your work is untouched.
 
+Your cloud credentials work the other way round, and deliberately so. The
+container gets its own `~/.aws` on a separate volume rather than seeing yours.
+That is the safer arrangement: a real `~/.aws` collects every profile you have
+ever configured, work and production included, and sharing it with a container
+shares all of them with everything running in there. The container needs one
+sandbox account, so it gets exactly that.
+
+The cost is that you log in twice, once on your machine and once inside, and
+that is the correct trade rather than an inconvenience to engineer away.
+
 ### 3.2 Why logging in from a container is different
 
 `aws login` and `gcloud auth login` both work by opening a web browser. A

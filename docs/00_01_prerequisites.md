@@ -601,6 +601,43 @@ the `[profile cgep]` stanza for you the first time it starts. It writes no
 credentials: you still run `aws login` yourself, and inside a container that
 means `aws login --remote --profile default`.
 
+> **Log in from inside the container, not on your machine.** This is the right
+> way round, and the reasoning is worth following because the tempting
+> alternative is the insecure one.
+>
+> The alternative is to log in on your machine and bind-mount `~/.aws` into the
+> container with something like `-v ~/.aws:/home/vscode/.aws`. It is a common
+> pattern and you should not use it here. Your real `~/.aws` accumulates every
+> profile you have ever configured, including work and production accounts. Bind
+> mounting it hands all of them to whatever runs in that container, which
+> includes Terraform providers and any tool a lab downloads. The container needs
+> one sandbox account, so give it exactly that and nothing else.
+>
+> A dedicated volume is therefore the smaller blast radius, not the larger one.
+>
+> **Know what is in that volume, though.** `aws login` caches more than the
+> fifteen minute session. Alongside the access token it stores a refresh token
+> that outlives it, and a DPoP key that binds the two together. The binding
+> means a stolen refresh token is not usable on its own, which is a real
+> improvement over a bearer token, but the pair sitting together in one volume
+> is still a credential. Treat it like one:
+>
+> ```bash
+> aws logout --profile default     # clears the cached login
+> ```
+>
+> And when you are finished with the course entirely, remove the volumes rather
+> than leaving them on the machine:
+>
+> ```bash
+> docker volume rm cgep-aws cgep-gcloud
+> ```
+>
+> What is deliberately absent from all of this is a long-lived access key. There
+> is no `aws_access_key_id` anywhere in the container, on your machine, or in
+> the image. Re-authenticating every fifteen minutes is mildly annoying and it is
+> the reason a leak of this volume expires on its own.
+
 When it finishes, the green box at the bottom left of VS Code reads
 **Dev Container: CGE-P Labs**, and a terminal there starts you in
 `/workspaces/cgep-labs-study-notes`. That path is the same folder as on your
