@@ -260,7 +260,7 @@ Worth stopping on, because both are the sort that never show up in a passing tes
 
 **The first: identity verification that verifies nothing.** `--certificate-identity-regexp '.*'` is the path of least resistance, and it accepts a certificate issued to *any* GitHub Actions workflow in *any* repository on GitHub. Anyone with a public repo can produce a bundle that passes.
 
-The signature was real. The question "whose signature" was never asked. Authenticity is not "a valid signature exists," it is "a valid signature from the identity I expect," and the difference is the entire control. v2 derives the expected identity from the receipt and refuses to run without one.
+The signature was real. The question "whose signature" was never asked. Authenticity is not "a valid signature exists," it is "a valid signature from the identity I expect," and the difference is the entire control. These notes derive the expected identity from the receipt and refuses to run without one.
 
 **The second: a check that is right for the wrong reason.** The obvious way to test retention is:
 
@@ -384,7 +384,7 @@ The capstone grader does exactly this and checks three things: the Cosign signat
 
 ## Revision history
 
-**v2** (current)
+**These notes**
 
 - Verification now constrains the signer identity, deriving it from the receipt and refusing to run without one. A permissive `.*` identity regex accepts a signature from any repository on GitHub.
 - Added a completeness check: the bundle carries a manifest and per-file hashes, so removing a file from a correctly-signed bundle is detected.
@@ -393,6 +393,6 @@ The capstone grader does exactly this and checks three things: the Cosign signat
 - The receipt is built with `jq -n` rather than a heredoc, and records the repository and workflow so verification knows what identity to expect.
 - The vault write policy gained `kms:GenerateDataKey`, needed now the vault uses a customer-managed key.
 
-**v1**
+**The official labs**
 
 Initial release: three of the four chain properties, with authenticity checked against a permissive identity regex and no completeness check.

@@ -382,7 +382,7 @@ tag_keys(resource) := set() if {
 sort_array(s) := sort([x | some x in s])
 ```
 
-Note `aws_kms_key` in the taggable list. Lab 2.3 v2 creates one, and an untagged key is a resource outside your boundary enumeration.
+Note `aws_kms_key` in the taggable list. Lab 2.3 creates one, and an untagged key is a resource outside your boundary enumeration.
 
 ### Step 7 Run the gate against the compliant plan
 
@@ -565,13 +565,13 @@ Two things to carry forward. The empty-results guard is what makes the capstone'
 
 ## Revision history
 
-**v2** (current)
+**These notes**
 
 - Two AWS variants added: SC-8 (a bucket policy exists and denies non-TLS) and AU-9 (the access-log target is versioned).
 - SC-28's AWS variant now distinguishes missing encryption from weak encryption, and requires a customer-managed key rather than any configuration.
 - `policy-gate.sh` gained an empty-results guard, so a gate that loads no policies exits non-zero instead of reporting success.
 - Gate failure messages are echoed to stderr rather than only written to the evidence artifact.
 
-**v1**
+**The official labs**
 
 Initial release: three AWS variants (SC-28, AC-3, CM-6), gate could report `PASS` having evaluated nothing.

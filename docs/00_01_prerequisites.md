@@ -1118,13 +1118,13 @@ Leave the budget alarm in place until the account is closed. It is the last thin
 
 ## Revision history
 
-**v2** (current)
+**These notes**
 
 - New document. Sandbox setup, credentials, toolchain and budget alarms were previously scattered across each lab's prerequisites.
 - `aws login` is the recommended credential path, ahead of IAM Identity Center, with access keys demoted to last resort.
 - Creating a non-root IAM user comes before the credential step, because `aws login` will otherwise offer the root session without flagging it.
 - Terraform is bridged to `aws login` with a `credential_process` profile rather than by exporting credentials into the shell. The profile resolves credentials per command, so a re-login is picked up automatically; an exported snapshot goes stale after about fifteen minutes and then outranks every attempt to fix it.
 
-**v1**
+**The official labs**
 
 Did not exist. Prerequisites were listed per lab.

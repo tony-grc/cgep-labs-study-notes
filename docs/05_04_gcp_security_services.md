@@ -84,7 +84,7 @@ Org Policy is the strongest layer, and it is the one that will page you at 2am i
 
 ### Step 1 Org Policy in audit mode first
 
-**This is the v2 addition and the most useful habit in the lab.**
+**This is an addition to the official lab, and the most useful habit in it.**
 
 Going straight to `enforce = "TRUE"` is fine in a lab account. In a real project, turning on a rejection at the API without knowing what currently violates it is how you break the deploy pipeline of a team that has never heard of you.
 
@@ -431,7 +431,7 @@ The Data Access logs feed your OSCAL component's AU-2 and AU-3 statements: enabl
 
 ## Revision history
 
-**v2** (current)
+**These notes**
 
 - Org Policy constraints roll out in `dry_run_spec` first and promote to `spec`, so a preventive control can be introduced without breaking a team that has never heard of you.
 - Corrected the audit-mode guidance: omitting the rules block does not audit, it leaves the policy not in effect at all.
@@ -439,6 +439,6 @@ The Data Access logs feed your OSCAL component's AU-2 and AU-3 statements: enabl
 - Workload Identity Federation documented as two layers, the provider `attribute_condition` and the binding `principalSet`, rather than one.
 - Named VPC Service Controls and CMEK org constraints as known gaps rather than leaving them unmentioned.
 
-**v1**
+**The official labs**
 
 Initial release: three constraints, straight to enforce, WIF documented as a single layer.

@@ -936,11 +936,11 @@ If the details fade, keep these.
 
 ## Revision history
 
-**v2** (current)
+**These notes**
 
 - New document. The labs say what to type; this explains what it means, traces every constant and magic string to its source, and lays out which choices are genuinely yours.
 - Section 3 covers the scaffolding rather than the compliance: the container and why browser logins fail inside it, the three places Terraform looks for an input, why your copy of the repository has to be yours, why repository variables are not secrets, and what is safe to publish. Most first evenings are lost in there rather than in the labs.
 
-**v1**
+**The official labs**
 
 Did not exist.

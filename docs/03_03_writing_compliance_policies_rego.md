@@ -535,7 +535,7 @@ opa test -v policies/
 
 ### Step 7 Mutation testing, or: prove the policy can fail
 
-**This section is new in v2 and it is the most important part of the lab.**
+**This section is new here, and it is the most important part of the lab.**
 
 A passing test suite proves your policy returns the answer you expected on the inputs you thought of. It does not prove the policy is *load-bearing*. A rule with a typo in the resource type matches nothing, denies nothing, and passes every "compliant input produces zero denials" test you wrote. It is a control that cannot fail, which is to say it is not a control.
 
@@ -702,13 +702,13 @@ cd terraform && terraform destroy -auto-approve
 
 ## Revision history
 
-**v2** (current)
+**These notes**
 
 - Two policies added: AU-3 (access logging configured) and AU-9 (the logging target is itself versioned).
 - Added `scripts/mutation-test.sh`. A policy no test constrains cannot fail, so each one is broken on purpose and the tests must notice.
 - Refactored the `child_modules` traversal into a shared helper rather than duplicating the `deny` rule per policy.
 - `# METADATA` annotations are now consumed rather than decorative: Lab 6.1 extracts them with `opa inspect` to generate the OSCAL component.
 
-**v1**
+**The official labs**
 
 Initial release: three policies (SC-28, AC-3, CM-6), metadata blocks present but unused, traversal duplicated per rule.

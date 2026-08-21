@@ -47,7 +47,7 @@ you start one and again when you write it up.
 
 ```
 docs/           Twelve lab guides, a plain-English companion, and an index,
-                as markdown and as PDFs, plus a 230-page bound edition.
+                as markdown and as PDFs, plus a 231-page bound edition.
 docs/diagrams/  A twelve page flow diagram deck, one per lab, plus the brief
                 that produced it and a checker that measures it.
 reference/      Eleven companion workspaces (Terraform, Rego, shell, OSCAL).
@@ -162,6 +162,6 @@ committed** and carry their own SIL Open Font License 1.1 terms; see
 
 ## Cost warning
 
-v2 costs more than v1, because it uses customer-managed KMS keys. Roughly $5 for the whole curriculum destroyed same-day, $10 to $15 if Security Hub and a few keys run for a month. KMS keys bill $1/month each and keep billing through their deletion window.
+This costs more than the official labs, because it uses customer-managed KMS keys. Roughly $5 for the whole curriculum destroyed same-day, $10 to $15 if Security Hub and a few keys run for a month. KMS keys bill $1/month each and keep billing through their deletion window.
 
 [docs/00_01_prerequisites.md](docs/00_01_prerequisites.md) sets a budget alarm before anything bills. Do that first.

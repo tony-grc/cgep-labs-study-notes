@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the CGE-P Lab Curriculum v2 branded PDF set.
+"""Build the CGE-P lab notes branded PDF set.
 
 Usage:
     python3 build.py [SRC_DIR] [OUT_DIR]
@@ -193,7 +193,7 @@ def build(src, outname, meta_line, is_guide):
     tag_html = "\n".join(f'<p class="tagline">{t}</p>' for t in taglines)
 
     cover = f'''<div class="cover">
-  <div class="kicker">CGE-P Lab Curriculum &middot; v2</div>
+  <div class="kicker">CGE-P Lab Notes</div>
   <h1>{two_tone(title)}</h1>
   {tag_html}
   <div class="rule"></div>
@@ -208,7 +208,7 @@ def build(src, outname, meta_line, is_guide):
     page = f'''<!DOCTYPE html>
 <html><head><meta charset="utf-8">
 <link rel="stylesheet" href="{STYLESHEET}">
-<title>{htmllib.escape(title)} - CGE-P Lab Curriculum v2</title>
+<title>{htmllib.escape(title)} - CGE-P Lab Notes</title>
 </head><body>
 {cover}
 {print_note(src)}
@@ -263,10 +263,10 @@ def front_matter(parts, out_path):
     page = f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8">
 <link rel="stylesheet" href="{STYLESHEET}">
-<title>{htmllib.escape(BOOK_TITLE)} - CGE-P Lab Curriculum v2</title>
+<title>{htmllib.escape(BOOK_TITLE)} - CGE-P Lab Notes</title>
 </head><body class="book-front">
 <div class="cover">
-  <div class="kicker">CGE-P Lab Curriculum &middot; v2</div>
+  <div class="kicker">CGE-P Lab Notes</div>
   <h1>{two_tone(BOOK_TITLE)}</h1>
   <p class="tagline">Every guide in one volume: the Plain English companion,
      the curriculum overview, twelve labs and the capstone brief.</p>

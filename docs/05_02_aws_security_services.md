@@ -259,7 +259,7 @@ resource "aws_s3_bucket_policy" "trail" {
 }
 ```
 
-The `aws:SourceArn` conditions are confused-deputy protection: without them, someone else's trail in another account could be pointed at your bucket. Note that this is the same pattern Lab 2.3 uses for S3 access-log delivery, which is why v2 uses a policy there rather than an ACL.
+The `aws:SourceArn` conditions are confused-deputy protection: without them, someone else's trail in another account could be pointed at your bucket. Note that this is the same pattern Lab 2.3 uses for S3 access-log delivery, which is why these notes use a policy there rather than an ACL.
 
 ### Step 3 The trail, with data events
 
@@ -568,7 +568,7 @@ Your OSCAL component declares `implemented-requirement` entries for AU-2, AU-3, 
 
 ## Revision history
 
-**v2** (current)
+**These notes**
 
 - AU-6 is now implemented rather than claimed: a Glue database, an Athena workgroup and three review queries, with a note that running them once by hand is `partial`, not `implemented`.
 - CloudTrail data events enabled for the evidence vault, scoped by an advanced event selector. Object-level reads of the vault were previously unrecorded.
@@ -577,6 +577,6 @@ Your OSCAL component declares `implemented-requirement` entries for AU-2, AU-3, 
 - Added `aws cloudtrail validate-logs` to the evidence steps, so validation is exercised rather than merely enabled.
 - Cost estimate corrected upward to $10 to $15 per month running, from $5 to $8.
 
-**v1**
+**The official labs**
 
 Initial release: management events only, AES256 trail bucket, AU-6 claimed without a review mechanism, log-file validation mapped to AU-10 and never run.

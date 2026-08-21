@@ -15,7 +15,7 @@ This lab writes the smallest useful piece of that graph, and it **generates** th
 
 - Run these from inside the devcontainer if you set one up in Lab 0.1: that is where the toolchain and your cloud logins live. `source cgep.env` first, in every new shell.
 - Python `>= 3.10`, `pip install compliance-trestle`.
-- Lab 2.3 (v2) and/or Lab 2.4 module on disk. We describe them in OSCAL.
+- Lab 2.3 and/or Lab 2.4 module on disk. We describe them in OSCAL.
 - Lab 2.5 vault exists, with at least one bundle, so evidence URIs resolve.
 - Lab 3.3's `evidence/lab-3-3/policy-catalog.json`.
 
@@ -71,7 +71,7 @@ Write that version down. Catalog, profile, and component must all share an `osca
 
 ### Step 2 Generate the requirements from the policy catalog
 
-**This is the v2 change, and it is the whole idea.**
+**This is the change these notes make, and it is the whole idea.**
 
 The obvious approach is to hand-type each `implemented-requirement`, having already typed the same control ID into the Rego metadata in Lab 3.3. That is two copies of one mapping, in two languages, drifting apart the moment either changes.
 
@@ -179,7 +179,7 @@ Then replace the skeleton. The shape, with the generated requirements spliced in
   "component-definition": {
     "uuid": "GENERATED-UUID-V4",
     "metadata": {
-      "title": "compliant-s3 module v2",
+      "title": "compliant-s3 module",
       "last-modified": "2026-08-17T18:00:00.000000+00:00",
       "version": "2.0.0",
       "oscal-version": "1.2.1",
@@ -455,7 +455,7 @@ When you retarget from NIST 800-53 to HIPAA, SOC 2, or CMMC for the capstone, ch
 
 ## Revision history
 
-**v2** (current)
+**These notes**
 
 - `implemented-requirement` entries are generated from the Lab 3.3 policy catalog rather than hand-typed, so each control mapping is authored once in the Rego annotation that enforces it.
 - Added `verify-oscal-graph.sh`: checks that every evidence href resolves, the catalog source is reachable and version-pinned, every component control appears in the profile, and no placeholder UUIDs survive. `trestle validate` proves the document is well-formed; this proves it is true.
@@ -463,6 +463,6 @@ When you retarget from NIST 800-53 to HIPAA, SOC 2, or CMMC for the capstone, ch
 - `oscal-version` and the catalog tag aligned to the version `trestle` targets, and the guidance now says to confirm the tag exists.
 - Control coverage grew from four to fourteen as the Chapter 2 baseline grew.
 
-**v1**
+**The official labs**
 
 Initial release: four controls, requirements typed by hand, catalog anchored to `main`, no graph verification.

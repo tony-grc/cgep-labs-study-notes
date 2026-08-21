@@ -141,7 +141,7 @@ The write-up is not optional. Sections: design decisions, control coverage, trad
 2. **Copy-paste OSCAL.** A file that doesn't describe your system is worse than no file. Authenticity over completeness.
 3. **Unsigned evidence.** A plan that isn't signed and immutably stored demonstrates no chain of custody.
 
-And one more, new in v2 because it is the most common way a good submission fails:
+And one more, added here because it is the most common way a good submission fails:
 
 4. **Controls you claimed but did not implement.** The most frequent instance is AU-6, audit review and analysis, claimed because logs are being collected. Collecting is AU-3 and AU-11. Review requires something that reads them, on a cadence, with a named reviewer. Claim `partial` and say what's missing. **We would rather read an honest `partial` than a confident `implemented` that falls apart in one question.**
 
@@ -210,7 +210,7 @@ Ship the repo. Earn the cert.
 
 ## Revision history
 
-**v2** (current)
+**These notes**
 
 - Added Layer 0, the remote state backend. Layer 3's apply-on-merge step is not completable without it.
 - Requires the policy suite to be mutation-tested, and requires the gate to fail closed when it loads no policies.
@@ -219,6 +219,6 @@ Ship the repo. Earn the cert.
 - Cosign verification must constrain the signer identity; a permissive `.*` regex does not demonstrate authenticity.
 - Added a fourth common mistake: claiming controls that were collected rather than implemented.
 
-**v1**
+**The official labs**
 
 Initial release: four layers, no state backend, no mutation-testing or inert-gate requirement.

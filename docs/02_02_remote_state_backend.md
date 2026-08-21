@@ -558,12 +558,12 @@ Stranding is the real risk here. If you delete the state bucket while another la
 
 ## Revision history
 
-**v2** (current)
+**These notes**
 
 - New lab. Without a remote backend a fresh CI runner plans against empty state, which makes the capstone's apply-on-merge step uncompletable.
 - Uses `use_lockfile` for native S3 locking, with the DynamoDB table documented as the pre-1.10 fallback.
 - The bootstrap workspace keeps local state deliberately, with the reasoning and a command to verify it holds no secrets.
 
-**v1**
+**The official labs**
 
 Did not exist. State was local everywhere.

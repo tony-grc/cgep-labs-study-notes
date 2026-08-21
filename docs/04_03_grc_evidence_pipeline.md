@@ -15,7 +15,7 @@ The YAML file you commit **is** your CM-3, CM-6, CA-2, CA-7, RA-5, SR-3, and AU-
 
 - Run these from inside the devcontainer if you set one up in Lab 0.1: that is where the toolchain and your cloud logins live. `source cgep.env` first, in every new shell.
 - **Lab 2.2** state backend. The pipeline needs it; see "Why the backend is a prerequisite" below.
-- Lab 2.3 (v2), Lab 3.3, Lab 3.4 artifacts committed into the repo.
+- Lab 2.3, Lab 3.3, Lab 3.4 artifacts committed into the repo.
 - A GitHub repository you own.
 - AWS permissions to create an IAM OIDC provider and role.
 
@@ -375,7 +375,7 @@ gh pr create --title "Add GRC evidence pipeline" --body "Reference pipeline."
 gh run watch
 ```
 
-Against the compliant Lab 2.3 v2 workspace:
+Against the compliant Lab 2.3 workspace:
 
 ```
 policy-gate: PASS
@@ -479,7 +479,7 @@ For that apply step, use a separate job gated on `github.ref == 'refs/heads/main
 
 ## Revision history
 
-**v2** (current)
+**These notes**
 
 - Requires the Lab 2.2 remote state backend. Without it a fresh runner plans against empty state, which makes the capstone's apply-on-merge step uncompletable.
 - The OIDC role gained an explicit state-access policy alongside `ReadOnlyAccess`, because a plan writes a lock object and refreshes state.
@@ -490,6 +490,6 @@ For that apply step, use a separate job gated on `github.ref == 'refs/heads/main
 - Branch protection with `enforce_admins: true` documented as the thing that makes the gate a control rather than a suggestion.
 - Evidence artifact retention raised from 90 to 365 days.
 
-**v1**
+**The official labs**
 
 Initial release: local state, `tfsec`, actions pinned by tag, no mutation test and no inert-gate test.

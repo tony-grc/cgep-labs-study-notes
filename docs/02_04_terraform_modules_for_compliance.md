@@ -78,7 +78,7 @@ Read the Cleanup section before you apply. GCP KMS keys cannot be truly deleted,
     +-------------------------------------------------------+
 ```
 
-Two buckets now, not one. The access-log bucket is the v2 addition, and it exists for the same reason it exists in Lab 2.3.
+Two buckets now, not one. The access-log bucket is an addition here, and it exists for the same reason it exists in Lab 2.3.
 
 ## Step-by-step walkthrough
 
@@ -592,7 +592,7 @@ Three things that will surprise you:
 
 ## Revision history
 
-**v2** (current)
+**These notes**
 
 - Added an access-log bucket, with versioning and a lifecycle rule, adding AU-3 and AU-9. The module previously logged nowhere.
 - `lock_retention_policy` exposed as an input rather than hardcoded, so an irreversible choice appears in the consumer's code.
@@ -600,6 +600,6 @@ Three things that will surprise you:
 - The attestation now records `transit_encryption` as inherited from the platform, rather than leaving SC-8 unstated.
 - Added a second negative test showing that a consumer cannot suppress a required label.
 
-**v1**
+**The official labs**
 
 Initial release: single bucket, no access logging, `is_locked` hardcoded.

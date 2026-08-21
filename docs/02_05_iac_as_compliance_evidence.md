@@ -669,7 +669,7 @@ proves you understand it.
 - [ ] At least one bundle uploaded, VersionId recorded in `evidence/lab-2-5/receipt.json`.
 - [ ] `evidence/lab-2-5/lock-test.txt`, a transcript of the failed versioned delete.
 - [ ] README states your `lock_mode` and `retention_days` **and defends them**.
-- [ ] README states whether you capture state, and why. This is new in v2 and it is the question a data-protection reviewer asks first.
+- [ ] README states whether you capture state, and why. This is new here, and it is the question a data-protection reviewer asks first.
 
 ## Troubleshooting
 
@@ -717,7 +717,7 @@ This vault **is** the capstone's evidence vault.
 
 ## Revision history
 
-**v2** (current)
+**These notes**
 
 - Vault encryption moved from SSE-S3 to a dedicated customer-managed KMS key, separate from the workload key, adding SC-12 and SC-13.
 - Added a bucket policy denying `aws:SecureTransport = false`, adding SC-8.
@@ -726,6 +726,6 @@ This vault **is** the capstone's evidence vault.
 - The receipt records whether state was included, and the VersionId is read with `--query` rather than parsed out of JSON by hand.
 - Cleanup guards on object-list length instead of relying on `|| true`.
 
-**v1**
+**The official labs**
 
 Initial release: AES256 vault, `terraform state pull` captured into every bundle by default, no TLS-deny policy.

@@ -820,7 +820,7 @@ mkdir -p "$EVIDENCE"
 - [ ] `evidence/lab-2-3/attestation.json`
 - [ ] `evidence/lab-2-3/enforcement-test.txt`, a transcript of the three denials and one success above.
 
-That last item is new in v2 and it is the one an assessor would actually want.
+That last item is new here, and it is the one an assessor would actually want.
 
 ## Troubleshooting
 
@@ -874,14 +874,14 @@ The KMS key does not disappear. It enters the deletion waiting period you set wi
 
 This is your first compliant primitive, and by the end of the course you will have a dozen.
 
-- **Ch 3**, your Rego policies read this exact `plan.json`. Because v2 adds SC-8 and CMK enforcement, Lab 3.4's policy library gains rules for both, and the `compliance_attestation` output gives the policies a stable shape to assert against.
+- **Ch 3**, your Rego policies read this exact `plan.json`. Because these notes add SC-8 and CMK enforcement, Lab 3.4's policy library gains rules for both, and the `compliance_attestation` output gives the policies a stable shape to assert against.
 - **Ch 4**, the `plan + show -json` ritual becomes a CI step, and `evidence/lab-2-3/` seeds the signed bundles. Worth knowing now: Chapter 4's gate runs Trivy, which flags both a missing HTTPS-enforcement policy and non-CMK encryption at HIGH. Build the bucket the way this lab does and the gate stays quiet; take either shortcut and your own pipeline will tell you so two chapters later.
 - **Ch 6**, you write an OSCAL Component Definition for this module. SC-28's `implemented-requirement` points at `evidence/lab-2-3/state.json`. An assessor reads the OSCAL, follows the link, sees the same JSON you generated. The audit becomes a traversal.
 - **Capstone Layer 1**, the required "hardening overrides" on the starter's uploads bucket are this pattern applied to a bucket you did not create. The capstone also requires a customer-managed key with rotation, which is the key you build in Step 4.
 
 ## Revision history
 
-**v2** (current)
+**These notes**
 
 - Encryption moved from SSE-S3 (`AES256`) to a customer-managed KMS key with rotation and bucket keys, adding SC-12 and SC-13.
 - Added a bucket policy denying `aws:SecureTransport = false`, adding SC-8 and SC-8(1).
@@ -894,6 +894,6 @@ This is your first compliant primitive, and by the end of the course you will ha
 - Added `compliance_attestation` output as a machine-readable evidence surface.
 - Resource count 11 to 18.
 
-**v1**
+**The official labs**
 
 Initial release: five controls claimed (SC-28, AU-3, AU-6, CM-6, AC-3), SSE-S3 encryption, one versioned bucket, ACL-based log delivery.

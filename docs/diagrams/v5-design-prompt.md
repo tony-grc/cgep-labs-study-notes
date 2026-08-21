@@ -200,7 +200,7 @@ diagram spends a dimension repeating itself.
 Above the diagram: lab number, title, cloud, and one or two plain sentences on
 what the lab is really for. Below it: what it produces, what it costs, how long
 it takes, then a single footnote line. Running header carries
-`CGE-P LAB CURRICULUM · V2` and the lab number.
+`CGE-P LAB NOTES` and the lab number.
 
 ## Hard content rules
 

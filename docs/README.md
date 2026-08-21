@@ -4,7 +4,7 @@ Eleven labs and a capstone brief. Every lab produces an artifact the capstone co
 
 > **Where these live.** Upstream, the guides are `guides/*.md` in [`GRCEngClub/cgep-labs`](https://github.com/GRCEngClub/cgep-labs) and the companion code is `reference/lab-X-Y/`. These drafts sit in `docs/` so you can build the reference workspaces from them before deciding what to upstream. Every code block here is written to pass that repo's CI: `terraform fmt -check -recursive`, `terraform validate -backend=false`, `opa test`, and `trestle validate`.
 
-This is the v2 rewrite. It differs from v1 in one governing way: **a lab may only cite a control it actually implements.** Where v1 claimed a control the code didn't satisfy, v2 either implements it or moves the claim to the lab that earns it. Where a mapping is arguable, the lab says so and defends it, because teaching students that control mappings are arguments rather than lookups is the single most transferable thing in this course.
+These notes differ from the official labs in one governing way: **a lab may only cite a control it actually implements.** Where a citation and the code did not line up, the code was written or the claim was moved to the lab that earns it. Where a mapping is arguable, the lab says so and defends it, because teaching students that control mappings are arguments rather than lookups is the single most transferable thing in this course.
 
 ## Start here
 
@@ -83,44 +83,44 @@ Every S3 bucket built anywhere in this curriculum enforces the same floor. Labs 
 | Versioning | `aws_s3_bucket_versioning` | CP-9, SI-7 | Prior object states survive deletion and overwrite. |
 | All four public-access-block flags | `aws_s3_bucket_public_access_block` | AC-3 | Two axes (ACL vs policy) by two states (new vs existing). |
 | ACLs disabled | `aws_s3_bucket_ownership_controls` = `BucketOwnerEnforced` | AC-3, AC-6 | AWS default since April 2023. An ACL-enabled bucket is itself a CIS and Security Hub finding. |
-| Deny non-TLS | `aws_s3_bucket_policy` (`aws:SecureTransport`) | SC-8, SC-8(1) | **The gap that v1 never closed anywhere.** |
+| Deny non-TLS | `aws_s3_bucket_policy` (`aws:SecureTransport`) | SC-8, SC-8(1) | **The gap the official labs never close anywhere.** |
 | Deny wrong-key uploads | `aws_s3_bucket_policy` (`s3:x-amz-server-side-encryption`) | SC-28 | Turns encryption from a default into an enforced condition. |
 | Lifecycle rules | `aws_s3_bucket_lifecycle_configuration` | AU-11, SA-9 | Retention is a control, and unbounded logs are an unbounded bill. |
 | Four required tags | provider `default_tags` | CM-6, CM-8 | Boundary enumeration by API call instead of by spreadsheet. |
 
 Two properties are **not** in the floor, deliberately, and each lab that needs them says so: Object Lock (Lab 2.5, evidence only) and cross-account log delivery (documented, not built, see Lab 5.2).
 
-## What changed from v1, and why
+## What changed, and why
 
-Read this section if you taught or took v1. Everything here is a correction, not a preference.
+Read this if you have taken the official labs. Everything here is a correction rather than a preference.
 
 **1. A state backend now exists (new Lab 2.2).**
-v1 built no backend anywhere, yet Lab 4.3's pipeline ran `terraform init` on a fresh runner and the capstone required `Apply` on merge to `main`. With local state, that runner starts with empty state, so the first apply after a merge either collides with existing resources or duplicates them. The capstone's Layer 3 was not completable as written. Lab 2.2 fixes it before anything depends on it.
+The official labs build no backend anywhere, yet Lab 4.3's pipeline ran `terraform init` on a fresh runner and the capstone required `Apply` on merge to `main`. With local state, that runner starts with empty state, so the first apply after a merge either collides with existing resources or duplicates them. The capstone's Layer 3 was not completable as written. Lab 2.2 fixes it before anything depends on it.
 
 **2. Lab 2.3's log bucket is now versioned.**
-v1's architecture prose said "both buckets enforce ... versioning" while its code versioned only the primary. The bucket holding audit records was less protected than the bucket holding data. Verified against v1's own resource count: 11 resources, no `aws_s3_bucket_versioning.log`.
+The official architecture prose says "both buckets enforce ... versioning" while its code versioned only the primary. The bucket holding audit records was less protected than the bucket holding data. Verified against their own resource count: 11 resources, no `aws_s3_bucket_versioning.log`.
 
 **3. TLS enforcement exists (SC-8).**
-v1 never used `aws:SecureTransport` in any lab, and never cited SC-8. Encryption at rest was covered in Chapter 2; encryption in transit was covered nowhere. This is also a `tfsec` HIGH, meaning v1's own Chapter 4 gate would have failed v1's own Chapter 2 artifact.
+They never use `aws:SecureTransport` in any lab, and never cited SC-8. Encryption at rest was covered in Chapter 2; encryption in transit was covered nowhere. This is also a `tfsec` HIGH, meaning their own Chapter 4 gate would fail their own Chapter 2 artifact.
 
 **4. AWS KMS is taught before the capstone requires it.**
-v1 taught CMEK only in Lab 2.4, on GCP. The capstone's Layer 1 required AWS CMKs with rotation. Students met `aws_kms_key` for the first time in a graded deliverable.
+They teach CMEK only in Lab 2.4, on GCP. The capstone's Layer 1 required AWS CMKs with rotation. Students met `aws_kms_key` for the first time in a graded deliverable.
 
 **5. Log delivery uses a bucket policy, not an ACL.**
-v1 set `BucketOwnerPreferred` and applied a `log-delivery-write` ACL, re-enabling ACLs on the log bucket to do it. That works, and it trips Security Hub's "S3 general purpose buckets should have ACLs disabled." v2 uses the modern grant to `logging.s3.amazonaws.com` with `aws:SourceArn` and `aws:SourceAccount` confused-deputy conditions. The `depends_on` dance disappears with it.
+They set `BucketOwnerPreferred` and applied a `log-delivery-write` ACL, re-enabling ACLs on the log bucket to do it. That works, and it trips Security Hub's "S3 general purpose buckets should have ACLs disabled." These notes use the modern grant to `logging.s3.amazonaws.com` with `aws:SourceArn` and `aws:SourceAccount` confused-deputy conditions. The `depends_on` dance disappears with it.
 
 **6. AU-6 is no longer claimed by Lab 2.3.**
-AU-6 is audit *review, analysis, and reporting*. Shipping logs into a bucket is AU-3 plus AU-11. v1 claimed AU-6 in a lab where nothing read the logs. v2 moves the claim to Lab 5.2, which now stands up an Athena table over the trail and runs a query, because that is what AU-6 costs.
+AU-6 is audit *review, analysis, and reporting*. Shipping logs into a bucket is AU-3 plus AU-11. They claim AU-6 in a lab where nothing reads the logs. These notes move the claim to Lab 5.2, which now stands up an Athena table over the trail and runs a query, because that is what AU-6 costs.
 
 **7. Versioning's control mapping is defended, not asserted.**
-v1 mapped versioning to CM-6. v2 maps it to CP-9 and SI-7, and on log buckets to AU-9, and explains why CM-6 was the weaker argument.
+They map versioning to CM-6. These notes map it to CP-9 and SI-7, and on log buckets to AU-9, and explains why CM-6 was the weaker argument.
 
 **8. CloudTrail data events are on for the evidence vault (Lab 5.2).**
-v1 said "we do not enable data events here," which left object-level access to the evidence vault unaudited. The vault is the one bucket where you must know who read what. Cost is called out explicitly.
+They say "we do not enable data events here," which left object-level access to the evidence vault unaudited. The vault is the one bucket where you must know who read what. Cost is called out explicitly.
 
 ## Cost and time
 
-v2 costs more than v1. That is the honest consequence of "production grade," and every lab states its own number. Running the whole curriculum and destroying same-day:
+This costs more than the official labs. That is the honest consequence of "production grade," and every lab states its own number. Running the whole curriculum and destroying same-day:
 
 | Lab | Marginal cost | Time |
 |---|---|---|
