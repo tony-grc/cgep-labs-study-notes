@@ -8,11 +8,12 @@ The labs tell you what to type. This tells you what it means, where every piece 
 
 1. [What the whole thing is for](#1-what-the-whole-thing-is-for)
 2. [The vocabulary](#2-the-vocabulary)
-3. [The decoder ring: where every magic string comes from](#3-the-decoder-ring)
-4. [The numbers: where every magic number comes from](#4-the-numbers)
-5. [The labs in plain English](#5-the-labs-in-plain-english)
-6. [Every decision you have to make](#6-every-decision-you-have-to-make)
-7. [How to find the answer yourself](#7-how-to-find-the-answer-yourself)
+3. [The machinery around the labs](#3-the-machinery-around-the-labs)
+4. [The decoder ring: where every magic string comes from](#4-the-decoder-ring)
+5. [The numbers: where every magic number comes from](#5-the-numbers)
+6. [The labs in plain English](#6-the-labs-in-plain-english)
+7. [Every decision you have to make](#7-every-decision-you-have-to-make)
+8. [How to find the answer yourself](#8-how-to-find-the-answer-yourself)
 
 ---
 
@@ -101,11 +102,158 @@ Plain definitions for the words that get used as though everyone already knows t
 
 ---
 
-## 3. The decoder ring
+## 3. The machinery around the labs
+
+None of this is compliance. It is the scaffolding the labs stand on, and it is
+where most people lose their first evening, so it is worth understanding rather
+than pattern-matching.
+
+### 3.1 The container, and why there is one
+
+The labs use ten command-line tools. Installing them by hand means ten
+downloads, each with a different naming convention, and the instructions are
+written for one operating system on one processor architecture. Every Mac sold
+since 2020 uses a different architecture from the one those instructions assume,
+so every download line is subtly wrong on a Mac and completely wrong on Windows.
+
+A **container** is a packaged filesystem with the tools already in it. You run
+it, and you are in a shell where `terraform` and `aws` already exist at the
+exact versions this curriculum was written against. Nothing is installed on
+your own machine, and nothing you do inside it can install anything on your own
+machine either.
+
+Two ways to get one, from the same definition:
+
+- **A Codespace** is that container running on GitHub's machines, with VS Code
+  in a browser tab. Nothing is installed locally at all.
+- **Locally**, Docker runs the same container on your machine and VS Code
+  attaches to it.
+
+The thing worth knowing, because it looks like magic and is not: the repository
+folder is *mounted* into the container rather than copied. Files you edit inside
+are your real files. Delete the container and your work is untouched.
+
+### 3.2 Why logging in from a container is different
+
+`aws login` and `gcloud auth login` both work by opening a web browser. A
+container has no browser and no way to open one on your machine, so both hang or
+fail in ways that do not mention browsers at all.
+
+Every such tool has a flag for this, because the problem is universal:
+
+| Command | Flag |
+|---|---|
+| `aws login` | `--remote` |
+| `gcloud auth login` | `--no-launch-browser` |
+| `gcloud auth application-default login` | `--no-launch-browser` |
+
+They all do the same thing: print a URL for you to open yourself, then wait
+while you paste back the code it gives you. The gcloud pair catches people
+because both commands need the flag, and the second is easy to forget.
+
+### 3.3 How Terraform finds its inputs
+
+A Terraform variable declared without a `default` has to come from somewhere.
+There are three somewheres, and knowing all three explains most confusing
+behaviour:
+
+| How | Looks like | When it is used |
+|---|---|---|
+| On the command line | `-var project_name=cgep-lab` | One-off, explicit, easy to forget |
+| A file it reads automatically | `terraform.tfvars` | Per workspace |
+| An environment variable | `TF_VAR_project_name=cgep-lab` | Everywhere, once |
+
+The third is why this curriculum uses a file called `cgep.env`. `project_name`
+is an input to four different labs and `aws_region` to five. Typing them into
+each is how you end up with a bucket in the wrong region, or two labs that
+disagree about what your project is called, and neither mistake announces
+itself.
+
+So you set them once, in a file you `source` at the start of a session, and
+Terraform picks them up on its own. There is no magic in it: Terraform reads
+any environment variable beginning `TF_VAR_` and strips the prefix to get the
+variable name.
+
+**If Terraform asks you for a value interactively, that is the tell.** It means
+none of the three routes supplied it. Answering the prompt works once and
+teaches you nothing; the fix is to work out which route you meant to use.
+
+`cgep.env` is deliberately not committed. It names your account, your project
+and your repository. It is configuration rather than a credential, but it is
+still yours.
+
+### 3.4 Why the copy has to be yours
+
+The capstone is graded on a public GitHub repository that you submit by URL. So
+your work has to live under your account from the first commit.
+
+Cloning someone else's repository gives you their code pointed at *their*
+remote. Everything works right up until your first `git push`, which is refused,
+usually at the moment you have something worth keeping.
+
+**Use this template** creates a fresh repository under your account with no
+relationship to the original. **Fork** does the same job but records that it
+came from somewhere else, which is fine for contributing back and slightly odd
+for work you are presenting as your own.
+
+`git remote -v` tells you where a push would go. If your username is not in that
+URL, you are about to be refused.
+
+Two things that are separate and are routinely confused: **your git identity**
+(`git config user.name` and `user.email`, which is what commits are labelled
+with) and **your authentication** (which is what proves you may push). Setting
+the first does not give you the second. Password authentication over HTTPS
+stopped working years ago, so `gh auth login` is the short path, and inside a
+container you want its device-code option for the reason in 3.2.
+
+### 3.5 Repository variables are not secrets
+
+GitHub gives a repository two places to keep values, and the difference matters
+more than it looks.
+
+A **variable** is configuration. You can read it back, it shows up in logs, and
+that is a feature when a workflow fails and you need to see what it actually
+used. A role ARN and a bucket name belong here: they *identify* things, they do
+not grant access to them.
+
+A **secret** is write-only and masked in logs. That is correct for a credential
+and unhelpful for anything else. Putting non-secrets in `secrets` is a common
+habit, and it quietly teaches that everything is equally sensitive, which is
+precisely how genuine credentials end up handled casually.
+
+The stronger point is what the pipeline lab stores in neither: **no access key,
+anywhere**. The OIDC trust means GitHub proves which repository and which branch
+is asking, and AWS hands back credentials that last minutes. There is no
+long-lived secret to leak, rotate, or accidentally print. A pipeline that pastes
+an access key into `secrets` is doing the same job far less safely, and the
+difference is the entire lesson of Lab 4.3.
+
+### 3.6 What is safe to publish
+
+Your evidence *is* your portfolio, so most of it is meant to be public. Three
+things to be deliberate about:
+
+**Terraform state is the real risk.** State records every attribute the provider
+stored, including ones marked sensitive, so a workspace that manages a database
+password has that password in its state. This is exactly the trap Lab 2.5 is
+built around. Look before you publish, and publish on purpose.
+
+**Your account ID will be in there**, in every ARN, unavoidably. It is not a
+credential and publishing it is not a breach, but it does help someone enumerate
+your roles. Decide once whether you are comfortable with that; if not, keep the
+repository private and share it with reviewers directly.
+
+**Bucket names are globally unique and yours.** Publishing them tells the world
+which buckets to probe. The controls you built in Lab 2.3 are exactly what makes
+that survivable, which is worth saying in your write-up rather than hiding.
+
+---
+
+## 4. The decoder ring
 
 This section exists because of one line in the brief for this guide: nothing should be a mystery as to where it comes from. Every odd-looking string in the labs is below, with its source.
 
-### 3.1 Amazon Resource Names (ARNs)
+### 4.1 Amazon Resource Names (ARNs)
 
 An ARN is AWS's universal address for a thing. The shape:
 
@@ -136,7 +284,7 @@ arn:aws:kms:us-east-1:123456789012:key/1234abcd-12ab-34cd-56ef-1234567890ab
 
 **Why the labs use `arn:${local.partition}:...` instead of typing `arn:aws:`.** Most of the world is in the `aws` partition. GovCloud is `aws-us-gov` and China is `aws-cn`, and an ARN with the wrong partition silently matches nothing. The `data "aws_partition" "current" {}` data source asks AWS which partition you are actually in. It costs nothing and makes the code correct everywhere.
 
-### 3.2 `arn:aws:iam::123456789012:root` does not mean the root user
+### 4.2 `arn:aws:iam::123456789012:root` does not mean the root user
 
 This is the single most misread string in the curriculum.
 
@@ -182,7 +330,7 @@ aws sts get-caller-identity
 
 If the `Arn` ends in `:root`, stop and fix it before applying anything.
 
-### 3.3 Service principals
+### 4.3 Service principals
 
 Strings like `logging.s3.amazonaws.com` are **service principals**: the identity a piece of AWS assumes when it acts on your behalf.
 
@@ -198,7 +346,7 @@ The ones in this curriculum:
 
 The point to internalize: when a bucket policy says "allow `logging.s3.amazonaws.com` to PutObject," you are not granting access to a person or a role. You are granting it to a robot inside AWS that will act only when a specific feature is switched on.
 
-### 3.4 Condition keys
+### 4.4 Condition keys
 
 Conditions are how an IAM policy says "only when." There are two kinds.
 
@@ -222,7 +370,7 @@ That second group is worth pausing on: those keys exist because S3's API is HTTP
 
 **The trap this creates.** When a Deny statement uses `StringNotEquals` on a header, and the request does not send that header at all, IAM evaluates "not equals" as **true**, so the Deny fires. That is why Lab 2.3 warns that a plain `aws s3 cp` gets rejected: the file would have been encrypted anyway by the bucket default, but the request did not *say* so, and the policy demands that it say so.
 
-### 3.5 The GitHub OIDC strings
+### 4.5 The GitHub OIDC strings
 
 Chapter 4 replaces stored AWS keys with a trust relationship. Three strings do the work.
 
@@ -243,7 +391,7 @@ This is why the trust policy uses `StringLike` with `repo:OWNER/REPO:*`: it cove
 
 The `thumbprint_list` value `6938fd4d98bab03faadb97b34396831e3780aea1` is a fingerprint of GitHub's certificate chain. AWS now maintains this trust internally for the GitHub provider, so the value is no longer load-bearing, but the argument is still required. It is one of the few genuinely vestigial strings in the curriculum, and worth knowing is vestigial so you do not worry about rotating it.
 
-### 3.6 `resources = ["*"]` inside a key policy
+### 4.6 `resources = ["*"]` inside a key policy
 
 This confuses everyone exactly once.
 
@@ -251,7 +399,7 @@ In an IAM policy attached to a user or role, `Resource: "*"` means "every resour
 
 In a **KMS key policy**, the policy is attached to one specific key, and `"*"` means **"this key."** It cannot mean anything else, because a key policy has no reach beyond its own key. Seeing `kms:*` on `"*"` in a key policy is normal and correct.
 
-### 3.7 S3 setting names
+### 4.7 S3 setting names
 
 | Value | What it actually does |
 |---|---|
@@ -264,7 +412,7 @@ In a **KMS key policy**, the policy is attached to one specific key, and `"*"` m
 | `COMPLIANCE` | Object Lock retention that **nobody** can bypass, including the account root, until it expires |
 | `GLACIER_IR` | "Instant Retrieval" archive storage. Cheaper to store, costs more per read, no retrieval delay. Right for logs. |
 
-### 3.8 Terraform syntax that looks like magic
+### 4.8 Terraform syntax that looks like magic
 
 **Where do attribute names come from?** When you write `aws_s3_bucket.primary.arn`, the `.arn` is defined by the **provider schema**, not by Terraform. The AWS provider publishes what each resource exports. You can read it locally:
 
@@ -296,7 +444,7 @@ That is the authoritative answer to "what can I put after the dot," and it beats
 
 **`filter {}`, empty.** In a lifecycle rule this means "apply to every object." The provider requires either a filter or a prefix, and an empty filter is how you say "no filtering."
 
-### 3.9 Rego syntax
+### 4.9 Rego syntax
 
 **`package compliance.sc28`** is a namespace. When Conftest runs with `--namespace compliance.sc28`, that string must match exactly. That is the whole relationship.
 
@@ -308,7 +456,7 @@ That is the authoritative answer to "what can I put after the dot," and it beats
 
 **`# METADATA`** blocks are not comments to OPA. It parses them as structured annotations you can extract with `opa inspect --annotations`. That is how Lab 6.1 generates OSCAL from your policies instead of retyping every control ID.
 
-### 3.10 Sigstore
+### 4.10 Sigstore
 
 Signing usually means managing a private key, which means protecting it forever. Sigstore's keyless flow avoids that:
 
@@ -321,7 +469,7 @@ Nobody stores a long-lived key, and the timestamp lives in a public log outside 
 
 The `.sig.bundle` file packs the signature, the certificate, and the log entry together so verification needs one file.
 
-### 3.11 OSCAL
+### 4.11 OSCAL
 
 Five document types. You will use three.
 
@@ -345,7 +493,7 @@ Five document types. You will use three.
 
 ---
 
-### 3.12 How your credentials actually reach Terraform
+### 4.12 How your credentials actually reach Terraform
 
 This one is worth its own entry because the error message points nowhere
 near the cause.
@@ -428,7 +576,7 @@ The general rule: **any credential source that is not a static key file needs
 this bridge.** Which is every source you should actually be using. A static
 key file avoids the problem by being the thing you were trying not to have.
 
-## 4. The numbers
+## 5. The numbers
 
 Every constant in the curriculum, and where it came from.
 
@@ -467,7 +615,7 @@ Leave one off and you have either an existing public grant still live or an open
 
 ---
 
-## 5. The labs in plain English
+## 6. The labs in plain English
 
 ### Lab 0.1: Prerequisites
 
@@ -607,7 +755,7 @@ So pin, and pair it with something that raises the version: Dependabot, Renovate
 
 ---
 
-## 6. Every decision you have to make
+## 7. Every decision you have to make
 
 The labs pick sensible defaults. These are the ones you should think about rather than accept.
 
@@ -671,7 +819,7 @@ Either is acceptable. What is not acceptable is automatic apply using the same c
 
 ---
 
-## 7. How to find the answer yourself
+## 8. How to find the answer yourself
 
 The goal is that you stop needing this document. When something is unfamiliar:
 
@@ -727,6 +875,7 @@ If the details fade, keep these.
 **v2** (current)
 
 - New document. The labs say what to type; this explains what it means, traces every constant and magic string to its source, and lays out which choices are genuinely yours.
+- Section 3 covers the scaffolding rather than the compliance: the container and why browser logins fail inside it, the three places Terraform looks for an input, why your copy of the repository has to be yours, why repository variables are not secrets, and what is safe to publish. Most first evenings are lost in there rather than in the labs.
 
 **v1**
 
