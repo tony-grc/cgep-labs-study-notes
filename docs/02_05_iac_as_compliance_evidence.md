@@ -328,7 +328,7 @@ That cross-variable validation on `retention_days` needs Terraform 1.9 or later.
 
 ```bash
 export AWS_PROFILE=cgep
-cd terraform/primitives/evidence-vault
+cd terraform/primitives/evidence-vault   # reference layout: cd reference/lab-2-5/terraform
 terraform init
 terraform fmt && terraform validate
 terraform apply -auto-approve
@@ -602,7 +602,15 @@ execute it.
 
 ## Verification
 
+These read `$VAULT` and `$VERSION_ID`. Derive both, so the block stands on its
+own in a fresh shell: `capture-evidence.sh` sets `VERSION_ID` inside its own
+process, which never reaches yours.
+
 ```bash
+VAULT=$(terraform output -raw vault_name)
+VERSION_ID=$(aws s3api list-object-versions --bucket "$VAULT" \
+  --prefix runs/test-001/ --query 'Versions[0].VersionId' --output text)
+
 aws s3api get-object-lock-configuration --bucket "$VAULT"
 aws s3api get-bucket-encryption          --bucket "$VAULT"
 aws s3api get-object-retention --bucket "$VAULT" \

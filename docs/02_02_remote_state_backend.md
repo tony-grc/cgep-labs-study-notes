@@ -92,7 +92,7 @@ We take the first. The bootstrap state contains no secrets, and keeping it local
 ### Step 2 Write the bootstrap workspace
 
 ```bash
-mkdir -p terraform/bootstrap && cd terraform/bootstrap
+mkdir -p terraform/bootstrap && cd terraform/bootstrap   # reference layout: cd reference/lab-2-2
 touch main.tf variables.tf outputs.tf
 ```
 
@@ -427,7 +427,7 @@ The `key` is a path inside the bucket, and it is how workspaces stay isolated. R
 If you already applied Lab 2.3 locally, do not start over:
 
 ```bash
-cd terraform/primitives/compliant-s3
+cd terraform/primitives/compliant-s3   # reference layout: cd reference/lab-2-3
 # add the backend block first, then:
 terraform init -migrate-state
 ```
