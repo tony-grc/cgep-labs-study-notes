@@ -758,20 +758,114 @@ chmod +x scripts/check-prereqs.sh && bash scripts/check-prereqs.sh
 
 `PREREQS OK` means you are ready for Lab 2.2.
 
-## Part 4: Habits that will save you
+## Part 4: Set your values once
 
-**Set `AWS_PROFILE` at the start of every session.** Terraform cannot read what
-`aws login` or Identity Center store, so the `credential_process` profile from
-Part 1 is a standing requirement and not an occasional fix. Put it in your
-shell profile so every new terminal starts correct:
+Across the course you supply the same handful of values over and over.
+`project_name` is asked for by four labs, `aws_region` by five. Typing them
+each time is how you end up with a bucket in the wrong region, or two labs that
+disagree about what your project is called.
+
+Terraform reads any environment variable named `TF_VAR_<variable>` as an input.
+So you can set every one of them once, in a file you source at the start of each
+session, and stop passing them to individual commands entirely.
+
+### Step 14 Create `cgep.env`
+
+In the repository root:
 
 ```bash
-echo 'export AWS_PROFILE=cgep' >> ~/.bashrc
+cat > cgep.env <<'EOF'
+# Sourced at the start of every session. Not committed: it names your account,
+# your project, and your repository.
+
+# ---- AWS, needed from Lab 2.2 onward ----
+export AWS_PROFILE=cgep
+export AWS_REGION=us-east-1
+export TF_VAR_aws_region="$AWS_REGION"
+
+# 3 to 21 lowercase letters, digits and hyphens. Becomes your bucket prefix,
+# so it has to be globally unique-ish. Your own name or initials work well.
+export TF_VAR_project_name=cgep-lab
+
+# dev, staging or prod. Drives the Environment tag.
+export TF_VAR_environment=dev
+
+# ---- GCP, needed for Labs 2.4, 3.3 and 5.4. Leave blank for the AWS track ----
+export TF_VAR_gcp_project=
+export TF_VAR_gcp_region=us-central1
+export CLOUDSDK_CORE_PROJECT="$TF_VAR_gcp_project"
+
+# ---- GitHub, needed for Labs 4.3, 4.4 and 5.4 ----
+export TF_VAR_github_org=
+export TF_VAR_github_repo=
+
+# ---- Filled in by labs as you finish them. Leave these alone for now. ----
+# Lab 2.2 gives you the state backend:
+# export TF_VAR_state_bucket=
+# export TF_VAR_state_kms_arn=
+# Lab 2.5 gives you the evidence vault:
+# export TF_VAR_evidence_vault_arn=
+EOF
 ```
 
-The `[profile cgep]` entry points at `--profile default`, because that is where
-`aws login` writes. If you configured a named login profile instead, point it
-there.
+Fill in the blanks you know, leave the rest. Then make sure it is never
+committed, because it names your account and your repository:
+
+```bash
+grep -qxF 'cgep.env' .gitignore || echo 'cgep.env' >> .gitignore
+```
+
+### Step 15 Source it, every session
+
+```bash
+source cgep.env
+```
+
+That is the first command of every working session, before any `terraform` or
+`aws` command. A convenient check that it worked:
+
+```bash
+echo "profile=$AWS_PROFILE project=$TF_VAR_project_name region=$AWS_REGION"
+```
+
+From here on, `terraform plan` and `terraform apply` find their inputs on their
+own. **You do not need a `terraform.tfvars` and you do not need `-var` flags.**
+Where a lab shows those, they are the alternative for anyone not using this
+file; if you sourced `cgep.env` you can leave them off.
+
+If you would rather not source it by hand each time, add it to your shell
+profile, but note that it only makes sense inside this repository:
+
+```bash
+echo '[ -f ~/cgep-labs-study-notes/cgep.env ] && source ~/cgep-labs-study-notes/cgep.env' >> ~/.bashrc
+```
+
+### Step 16 Add values as labs produce them
+
+Some values do not exist until a lab creates them. Lab 2.2 produces the state
+bucket and its key; Lab 2.5 produces the evidence vault. Each of those labs
+tells you to append its outputs, in this shape:
+
+```bash
+cd reference/lab-2-2
+{
+  echo "export TF_VAR_state_bucket=$(terraform output -raw state_bucket)"
+  echo "export TF_VAR_state_kms_arn=$(terraform output -raw state_kms_key_arn)"
+} >> ../../cgep.env
+cd ../..
+source cgep.env
+```
+
+Reading them out of `terraform output` rather than copying them from your
+terminal is deliberate. Both strings contain your account ID and a random
+suffix, and transcription is exactly where this goes wrong.
+
+## Part 5: Habits that will save you
+
+**Set `AWS_PROFILE` at the start of every session**, which `cgep.env` does for
+you. The `[profile cgep]` entry points at `--profile default`, because that is
+where `aws login` writes. If you configured a named login profile instead, point
+it there.
 
 **Never export credentials into the shell.** The one habit that will cost you
 an afternoon is `eval "$(aws configure export-credentials --format env)"`.
@@ -788,7 +882,7 @@ aws sts get-caller-identity --query Arn --output text
 
 An `Arn` ending in `:root` means stop and re-authenticate as your IAM user.
 
-**Never commit credentials.** Every lab's `.gitignore` excludes `*.tfvars` and `*.tfstate` for this reason. Add a scanner before you need one.
+**Never commit credentials or account values.** The repository's `.gitignore` excludes `*.tfvars`, `*.tfstate` and `cgep.env` for this reason. All three name your account. Add a scanner before you need one.
 
 **Destroy what you finish**, except the Lab 2.2 state backend, which everything else depends on. Destroy that last, after Lab 6.1, and only after every other workspace is gone. Deleting the state bucket while resources still exist strands them: no state means Terraform can no longer destroy them, and you are deleting things by hand in the console.
 

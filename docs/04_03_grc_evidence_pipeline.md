@@ -161,11 +161,7 @@ output "role_arn" { value = aws_iam_role.grc_gate.arn }
 ```bash
 cd oidc
 terraform init
-terraform apply \
-  -var=github_org=YourOrg \
-  -var=github_repo=YourRepo \
-  -var=state_bucket=cgep-lab-tfstate-XXXXXXXX \
-  -var=state_kms_arn=arn:aws:kms:us-east-1:ACCOUNT:key/KEY-ID
+terraform apply
 ```
 
 The `StringLike` on `sub` binds this role to one repository. **Do not loosen it.** A role trusted by `repo:*:*` is trusted by every public repository on GitHub, which is not a subtle failure. If you want it tighter still, bind to a specific ref or environment:

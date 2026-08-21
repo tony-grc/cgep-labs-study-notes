@@ -539,6 +539,17 @@ aws s3 cp bundle.sig.bundle "s3://$VAULT/runs/test-001/bundle.sig.bundle"
 
 Object Lock makes the bundle immutable. It does not prove who made it or when. That is what signing adds, and it is the whole subject of Lab 4.4.
 
+### Record the vault in `cgep.env`
+
+Lab 5.2 scopes CloudTrail data events to this vault, and needs its ARN:
+
+```bash
+{
+  echo "export TF_VAR_evidence_vault_arn=arn:aws:s3:::$(terraform output -raw vault_name)"
+} >> ../../../cgep.env
+source ../../../cgep.env
+```
+
 ## Verification
 
 ```bash

@@ -44,3 +44,6 @@ backend.hcl
 *.mp4
 *.mov
 *.webm
+
+# Your account, project and repository names. Sourced, never committed.
+cgep.env

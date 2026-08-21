@@ -440,6 +440,23 @@ aws s3 ls "s3://<state-bucket>/labs/2-3/"
 
 Keep the local `terraform.tfstate.backup` until you have confirmed a clean `plan` against the remote state. "No changes" is the signal that migration worked.
 
+### Step 8 Record the outputs in `cgep.env`
+
+Lab 4.3 needs this bucket and key by name, and both strings contain your account
+ID and a random suffix. Read them out rather than retyping them:
+
+```bash
+{
+  echo "export TF_VAR_state_bucket=$(terraform output -raw state_bucket)"
+  echo "export TF_VAR_state_kms_arn=$(terraform output -raw state_kms_key_arn)"
+} >> ../../cgep.env
+source ../../cgep.env
+```
+
+If you have not created `cgep.env`, Lab 0.1 Step 14 sets it up. It is the file
+you source at the start of every session, and it is gitignored because it names
+your account.
+
 ## Verification
 
 ```bash
