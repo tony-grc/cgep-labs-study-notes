@@ -1,0 +1,46 @@
+# Terraform working directories and provider binaries
+**/.terraform/*
+
+# State files: may contain secrets, never commit
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Saved plans: binary, and can embed sensitive values
+tfplan
+*.tfplan
+
+# Variable files that may hold real values
+*.tfvars
+*.tfvars.json
+
+# Crash logs
+crash.log
+crash.*.log
+
+# PDF build kit: font binaries are fetched, not committed.
+# Run docs/CGE-P_PDF_Build_Kit/fonts/fetch-fonts.sh before the first build.
+docs/CGE-P_PDF_Build_Kit/fonts/*.otf
+docs/CGE-P_PDF_Build_Kit/fonts/*.ttf
+
+# Python bytecode from local syntax checks
+__pycache__/
+*.pyc
+
+# Build kit output directory
+docs/CGE-P_PDF_Build_Kit/out/
+
+# Backend configs hold real bucket names and key ARNs (account-specific)
+backend.hcl
+
+# Lab evidence output. state.json and the attestations carry the account ID,
+# bucket names and key ARNs, and this repository is meant to go public.
+# reference/lab-6-1/evidence/policy-catalog.json is committed deliberately
+# and does not match this pattern.
+**/evidence/lab-*/
+
+# Reference material from other people (Slack clips, screen recordings).
+# Not ours to publish, and a stray 'git add -A' will otherwise sweep it in.
+*.mp4
+*.mov
+*.webm

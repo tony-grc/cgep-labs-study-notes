@@ -1,0 +1,8 @@
+# Copy to backend.hcl and fill in from Lab 2.2:
+#   cd ../lab-2-2 && terraform output -raw state_bucket
+#   cd ../lab-2-2 && terraform output -raw state_kms_key_arn
+#
+# backend.hcl is gitignored: it holds a real bucket name and key ARN, which
+# carry your account ID and do not belong in a public repository.
+bucket     = "YOUR_STATE_BUCKET"
+kms_key_id = "YOUR_STATE_KMS_KEY_ARN"

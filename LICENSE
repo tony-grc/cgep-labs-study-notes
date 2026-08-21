@@ -1,0 +1,46 @@
+MIT License
+
+Copyright (c) 2026 GRC Engineering Club
+
+This work is a derivative of GRCEngClub/cgep-labs, which is licensed under the
+MIT License. The original copyright notice is retained above. Contributions to
+this derivative are released under the same licence and assert no separate
+copyright.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+THIRD-PARTY COMPONENTS
+
+The typefaces referenced by the PDF build kit are not covered by the license
+above and are not committed to this repository. They are fetched by
+docs/CGE-P_PDF_Build_Kit/fonts/fetch-fonts.sh and are licensed separately:
+
+  Inter            SIL Open Font License 1.1
+                   Copyright (c) 2016 The Inter Project Authors
+                   docs/CGE-P_PDF_Build_Kit/fonts/LICENSE-Inter-OFL.txt
+
+  JetBrains Mono   SIL Open Font License 1.1
+                   Copyright 2020 The JetBrains Mono Project Authors
+                   docs/CGE-P_PDF_Build_Kit/fonts/LICENSE-JetBrainsMono-OFL.txt
+
+PDFs produced by the build kit embed subsets of these typefaces. The OFL
+permits this; the license texts travel with the repository so the terms are
+available whether or not the binaries have been fetched.

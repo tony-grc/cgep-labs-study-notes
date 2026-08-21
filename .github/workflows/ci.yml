@@ -1,0 +1,469 @@
+# CI for cgep-labs-v2.
+#
+# These are the same checks a learner runs locally. If something here fails,
+# the curriculum is broken, not the pipeline.
+#
+# Three of the guide's errors were found by running these by hand rather than
+# by re-reading the prose: a wrong resource count, an Athena argument that
+# does not exist, and a jq expression that produced raw JSON. That is what
+# this file is for.
+name: ci
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  TERRAFORM_VERSION: 1.15.8
+  OPA_VERSION: 1.19.1
+
+jobs:
+  terraform:
+    name: terraform fmt + validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      - name: terraform fmt -check
+        run: |
+          if ! terraform fmt -check -recursive reference/; then
+            echo "::error::Run 'terraform fmt -recursive reference/' to fix."
+            exit 1
+          fi
+
+      - name: terraform validate (every workspace)
+        run: |
+          set -uo pipefail
+          fail=0
+          while IFS= read -r dir; do
+            echo "=== $dir ==="
+            (
+              cd "$dir"
+              terraform init -backend=false -input=false -no-color > /tmp/init.log 2>&1 || {
+                echo "::error::init failed in $dir"; cat /tmp/init.log; exit 1; }
+              terraform validate -no-color
+            ) || fail=1
+          done < <(find reference -type f -name '*.tf' -not -path '*/.terraform/*' \
+                   -exec dirname {} \; | sort -u)
+          exit $fail
+
+  opa:
+    name: opa test + mutation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install OPA
+        run: |
+          curl -fsSL "https://github.com/open-policy-agent/opa/releases/download/v${OPA_VERSION}/opa_linux_amd64_static" \
+            -o /usr/local/bin/opa
+          chmod +x /usr/local/bin/opa
+          opa version
+
+      - name: opa test
+        run: |
+          set -uo pipefail
+          fail=0
+          while IFS= read -r dir; do
+            echo "=== $dir ==="
+            opa test -v "$dir" || fail=1
+          done < <(find reference -type d -name policies | sort -u)
+          exit $fail
+
+      # A policy no test constrains cannot fail, and a suite full of those
+      # passes every check while enforcing nothing. Verify each one dies.
+      - name: mutation test
+        run: |
+          set -uo pipefail
+          fail=0
+          while IFS= read -r script; do
+            dir="$(dirname "$(dirname "$script")")/policies"
+            [ -d "$dir" ] || continue
+            echo "=== $dir ==="
+            ( cd "$(dirname "$dir")" && bash scripts/mutation-test.sh policies ) || fail=1
+          done < <(find reference -name mutation-test.sh | sort -u)
+          exit $fail
+
+  oscal:
+    name: trestle validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.11'
+      - run: pip install compliance-trestle
+
+      - name: validate every OSCAL document
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/trestle"; mkdir -p "$ROOT"; cd "$ROOT"
+          trestle init -v
+          fail=0
+          while IFS= read -r f; do
+            sub=$(echo "${f#reference/}" | awk -F/ '{for(i=1;i<=NF;i++) if($i=="component-definitions"||$i=="profiles"||$i=="catalogs"){print $i "/" $(i+1); exit}}')
+            mkdir -p "$ROOT/$sub"
+            cp "$GITHUB_WORKSPACE/$f" "$ROOT/$sub/"
+            echo "=== $f ==="
+            trestle validate -f "$sub/$(basename "$f")" || fail=1
+          done < <(cd "$GITHUB_WORKSPACE" && find reference \
+                     \( -path '*/component-definitions/*' -o -path '*/profiles/*' \) \
+                     -name '*.json' | sort -u)
+          exit $fail
+
+  shell:
+    name: shell syntax
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: bash -n every script
+        run: |
+          set -uo pipefail
+          fail=0
+          while IFS= read -r s; do
+            bash -n "$s" && echo "  ok  $s" || { echo "::error::syntax error in $s"; fail=1; }
+          done < <(find . -name '*.sh' -not -path './.git/*' | sort)
+          exit $fail
+
+  supply-chain:
+    name: actions pinned by SHA
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # SR-3 / SR-11. A tag is a mutable pointer; the curriculum argues for
+      # pinning, so the curriculum's own workflows had better be pinned.
+      - name: every `uses:` must carry a 40-char SHA
+        run: |
+          set -uo pipefail
+          fail=0
+          while IFS= read -r f; do
+            while IFS= read -r line; do
+              # Strip the "uses:" prefix AND the trailing "# v4.2.2" comment.
+              # Forgetting the comment makes every correctly-pinned action
+              # look unpinned, which is how this check first failed.
+              ref=$(printf '%s' "$line" | sed 's/.*uses:[[:space:]]*//; s/[[:space:]]*#.*//; s/[[:space:]]*$//')
+              case "$ref" in
+                ./*|"") continue ;;
+              esac
+              if printf '%s' "$ref" | grep -qE '@[0-9a-f]{40}$'; then
+                echo "  ok  $ref"
+              else
+                echo "::error file=$f::not SHA-pinned: $ref"
+                fail=1
+              fi
+            done < <(grep -hE '^[[:space:]]*(-[[:space:]]*)?uses:' "$f" || true)
+          done < <(find . -path '*/workflows/*.yml' -not -path './.git/*' | sort)
+          exit $fail
+
+  docs-commands:
+    name: pasteable shell in the guides
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # A learner copies these blocks verbatim. "<your-sandbox>" is a shell
+      # REDIRECT, so the line fails with "No such file or directory" and, when
+      # it sits inside eval "$(...)", produces no output and no obvious cause.
+      # The failure then surfaces much later as an unrelated credentials
+      # error. Placeholders in runnable lines must be plain tokens.
+      - name: no angle-bracket placeholders in runnable commands
+        run: |
+          set -uo pipefail
+          fail=0
+          while IFS= read -r f; do
+            out=$(awk -v F="$f" '
+              /^```/ {
+                if (inb) { inb = 0 } else { inb = ($0 == "```bash") }
+                next
+              }
+              !inb { next }
+              /^[[:space:]]*#/ { next }
+              /echo|usage:|Usage/ { next }
+              {
+                line = $0
+                # Single quotes are literal, so their contents are inert.
+                gsub(/\047[^\047]*\047/, "", line)
+                # Double quotes are NOT inert when they contain command
+                # substitution: eval "$(cmd <x> ...)" still runs the redirect.
+                # Only discard double-quoted spans on lines with no $( .
+                if (line !~ /\$\(/) gsub(/"[^"]*"/, "", line)
+                if (line ~ /<[A-Za-z_][A-Za-z0-9_-]*>/)
+                  printf "%s:%d: %s\n", F, NR, substr($0, 1, 100)
+              }' "$f")
+            if [ -n "$out" ]; then
+              echo "$out" | while IFS= read -r l; do echo "::error::$l"; done
+              fail=1
+            fi
+          done < <(find docs -name '*.md')
+          [ $fail -eq 0 ] && echo "No angle-bracket placeholders in runnable bash blocks."
+          exit $fail
+
+  pin-freshness:
+    name: pinned actions still current
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # A pin is a maintenance obligation. A tag floats and silently collects
+      # both fixes and compromises; a SHA collects neither, including upstream
+      # runtime migrations. Without something that raises the version, pinning
+      # trades a supply chain risk for a quieter obsolescence risk.
+      #
+      # FAILS when a pinned SHA no longer exists upstream (deleted or
+      # force-pushed). WARNS when the comment tag is behind the latest
+      # release, because chasing every bump is not the goal; noticing is.
+      - name: check every pin resolves and report staleness
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -uo pipefail
+          fail=0
+          grep -rhoE 'uses: [a-z0-9._-]+/[a-z0-9._-]+@[0-9a-f]{40} # \S+' \
+            --include='*.yml' --include='*.md' . \
+          | sed 's/^uses: //' | sort -u | while read -r ref tag_comment tag; do
+              repo="${ref%@*}"; sha="${ref#*@}"
+              if ! gh api "repos/$repo/commits/$sha" --jq .sha >/dev/null 2>&1; then
+                echo "::error::$repo@$sha no longer resolves upstream"
+                exit 1
+              fi
+              latest=$(gh api "repos/$repo/releases/latest" --jq .tag_name 2>/dev/null || echo "?")
+              if [ "$latest" != "$tag" ] && [ "$latest" != "?" ]; then
+                echo "::warning::$repo pinned at $tag, latest is $latest"
+              else
+                echo "  current  $repo $tag"
+              fi
+            done || fail=1
+          exit $fail
+
+      # The container and Lab 0.1 install the same tools at the same versions.
+      # They live in two files, so they drift silently unless something
+      # compares them.
+      - name: Container pins agree with Lab 0.1, and report staleness
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -uo pipefail
+          guide=docs/00_01_prerequisites.md
+          fail=0
+          declare -A REPO=(
+            [TERRAFORM]=hashicorp/terraform [OPA]=open-policy-agent/opa
+            [CONFTEST]=open-policy-agent/conftest [TRIVY]=aquasecurity/trivy
+            [COSIGN]=sigstore/cosign [GH]=cli/cli
+          )
+          while IFS='=' read -r key ver; do
+            name=${key%_VERSION}
+            if ! grep -qF "$ver" "$guide"; then
+              echo "::error::$name pinned at $ver in the Dockerfile, absent from $guide"
+              fail=1
+            fi
+            repo=${REPO[$name]:-}
+            [ -n "$repo" ] || continue
+            latest=$(gh api "repos/$repo/releases/latest" --jq .tag_name 2>/dev/null | sed 's/^v//' || echo "?")
+            if [ "$latest" != "$ver" ] && [ "$latest" != "?" ]; then
+              echo "::warning::$name pinned at $ver, latest is $latest"
+            else
+              echo "  current  $name $ver"
+            fi
+          done < <(grep -oE '^ARG [A-Z_]+_VERSION=[0-9.]+' .devcontainer/Dockerfile | sed 's/^ARG //')
+          [ $fail -eq 0 ] && echo "Container pins all appear in Lab 0.1."
+          exit $fail
+
+  docs:
+    name: PDFs match the markdown
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+
+      # WeasyPrint needs OS libraries beyond pip. pandoc is pinned rather than
+      # taken from apt: the runner's distro pandoc happens to match today, and
+      # the day it does not, the only symptom is an unexplained PDF text diff
+      # in the step below.
+      - name: Install system dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq poppler-utils \
+            libpango-1.0-0 libpangoft2-1.0-0 libgdk-pixbuf-2.0-0 libffi-dev
+          PANDOC=$(grep -oP '(?<=^# pandoc )[0-9.]+' docs/CGE-P_PDF_Build_Kit/requirements.txt)
+          curl -fsSLO "https://github.com/jgm/pandoc/releases/download/${PANDOC}/pandoc-${PANDOC}-1-amd64.deb"
+          sudo dpkg -i "pandoc-${PANDOC}-1-amd64.deb"
+          rm -f "pandoc-${PANDOC}-1-amd64.deb"
+
+      - run: pip install -r docs/CGE-P_PDF_Build_Kit/requirements.txt
+
+      # PDFs are byte-reproducible only for a fixed toolchain. weasyprint 68.1
+      # and 69.0 produce text-identical but byte-different output at the same
+      # SOURCE_DATE_EPOCH, so a drifted version is worth failing on plainly
+      # rather than debugging through a diff.
+      - name: Toolchain matches the pins
+        run: |
+          set -euo pipefail
+          req=docs/CGE-P_PDF_Build_Kit/requirements.txt
+          fail=0
+          want_pandoc=$(grep -oP '(?<=^# pandoc )[0-9.]+' "$req")
+          got_pandoc=$(pandoc --version | head -1 | awk '{print $2}')
+          [ "$want_pandoc" = "$got_pandoc" ] || { echo "::error::pandoc $got_pandoc, pinned $want_pandoc"; fail=1; }
+          while IFS='=' read -r pkg _ ver; do
+            [ -n "$pkg" ] || continue
+            got=$(python3 -c "import importlib.metadata as m; print(m.version('$pkg'))")
+            [ "$got" = "$ver" ] || { echo "::error::$pkg $got, pinned $ver"; fail=1; }
+          done < <(grep -E '^[a-z]' "$req")
+          [ $fail -eq 0 ] && echo "pandoc $got_pandoc and all pinned Python packages match."
+          exit $fail
+
+      # Also proves fetch-fonts.sh works from a clean checkout, which is the
+      # one thing about the build kit that cannot be checked on a machine
+      # where the fonts already happen to be present.
+      - name: Fetch and verify fonts
+        run: ./docs/CGE-P_PDF_Build_Kit/fonts/fetch-fonts.sh
+
+      # The canonical epoch. Same sources plus same epoch reproduces the
+      # committed bytes, so a diff means the markdown changed and the PDFs
+      # were not rebuilt.
+      - name: Rebuild and compare
+        env:
+          SOURCE_DATE_EPOCH: '1755500000'
+        run: |
+          set -euo pipefail
+          python3 docs/CGE-P_PDF_Build_Kit/build.py docs "$RUNNER_TEMP/pdf"
+          fail=0
+          for f in docs/*.pdf; do
+            b="$RUNNER_TEMP/pdf/$(basename "$f")"
+            if [ ! -f "$b" ]; then
+              echo "::error::$(basename "$f") is committed but the kit does not build it"; fail=1; continue
+            fi
+            if ! diff -q <(pdftotext "$f" -) <(pdftotext "$b" -) >/dev/null; then
+              echo "::error file=$f::PDF is stale. Rebuild with SOURCE_DATE_EPOCH=1755500000."
+              diff <(pdftotext "$f" -) <(pdftotext "$b" -) | head -20
+              fail=1
+            fi
+          done
+          [ $fail -eq 0 ] && echo "All PDFs match their markdown."
+          exit $fail
+
+      # The bound edition is a merge of the standalone PDFs, so every section
+      # must be identical to the file that ships on its own. This is the
+      # synchronization guarantee, checked rather than asserted.
+      - name: Bound edition matches its parts
+        run: |
+          set -euo pipefail
+          python3 - <<'PYEOF'
+          import subprocess, sys
+          from pypdf import PdfReader
+          D = "docs"
+          BOOK = f"{D}/CGE-P_Complete_Curriculum.pdf"
+          ORDER = ["CGE-P_Plain_English_Guide","CGE-P_Curriculum_Overview",
+              "CGE-P_Lab_0.1_Prerequisites","CGE-P_Lab_2.2_Remote_State_Backend",
+              "CGE-P_Lab_2.3_First_Compliant_Resource","CGE-P_Lab_2.4_Modules_for_Compliance",
+              "CGE-P_Lab_2.5_IaC_as_Compliance_Evidence","CGE-P_Lab_3.3_Writing_Rego",
+              "CGE-P_Lab_3.4_Conftest_and_Terraform","CGE-P_Lab_4.3_GRC_Evidence_Pipeline",
+              "CGE-P_Lab_4.4_Chain_of_Custody","CGE-P_Lab_5.2_AWS_Security_Services",
+              "CGE-P_Lab_5.4_GCP_Security_Services","CGE-P_Lab_6.1_Introduction_to_OSCAL",
+              "CGE-P_Capstone_Brief"]
+          def txt(p, f=None, l=None):
+              cmd = ["pdftotext"] + (["-f",str(f),"-l",str(l)] if f else []) + [p,"-"]
+              return subprocess.run(cmd, capture_output=True, text=True).stdout.strip()
+          book_pages = len(PdfReader(BOOK).pages)
+          total = sum(len(PdfReader(f"{D}/{n}.pdf").pages) for n in ORDER)
+          off, bad = book_pages - total + 1, 0
+          for n in ORDER:
+              sp = f"{D}/{n}.pdf"; c = len(PdfReader(sp).pages)
+              if txt(sp) != txt(BOOK, off, off + c - 1):
+                  print(f"::error::{n} differs between the bound edition and its standalone PDF")
+                  bad += 1
+              off += c
+          print(f"{len(ORDER)-bad}/{len(ORDER)} sections identical; book {book_pages}p, parts {total}p")
+          sys.exit(1 if bad else 0)
+          PYEOF
+
+  devcontainer:
+    name: lab container builds on both architectures
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Every tool in the image names architectures differently, and a wrong
+      # asset name is the failure this job exists to catch. Checking the URLs
+      # is cheap and covers arm64 without emulating it.
+      - name: Download URLs resolve on amd64 and arm64
+        run: |
+          set -uo pipefail
+          eval "$(grep -oE '^ARG [A-Z_]+_VERSION=[0-9.]+' .devcontainer/Dockerfile | sed 's/^ARG //')"
+          fail=0
+          for a in amd64 arm64; do
+            case "$a" in
+              amd64) TF_A=amd64; AWS_A=x86_64;  GC_A=x86_64; OPA_A=amd64; CT_A=x86_64; TV_A=64bit; CS_A=amd64 ;;
+              arm64) TF_A=arm64; AWS_A=aarch64; GC_A=arm;    OPA_A=arm64; CT_A=arm64;  TV_A=ARM64; CS_A=arm64 ;;
+            esac
+            while read -r name url; do
+              code=$(curl -sSL -o /dev/null -w '%{http_code}' --retry 2 "$url")
+              if [ "$code" != 200 ]; then
+                echo "::error::$a $name -> HTTP $code  $url"; fail=1
+              fi
+            done <<EOF
+          terraform https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_${TF_A}.zip
+          awscli https://awscli.amazonaws.com/awscli-exe-linux-${AWS_A}.zip
+          gcloud https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-${GC_A}.tar.gz
+          opa https://github.com/open-policy-agent/opa/releases/download/v${OPA_VERSION}/opa_linux_${OPA_A}_static
+          conftest https://github.com/open-policy-agent/conftest/releases/download/v${CONFTEST_VERSION}/conftest_${CONFTEST_VERSION}_Linux_${CT_A}.tar.gz
+          trivy https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-${TV_A}.tar.gz
+          cosign https://github.com/sigstore/cosign/releases/download/v${COSIGN_VERSION}/cosign-linux-${CS_A}
+          EOF
+          done
+          [ $fail -eq 0 ] && echo "All toolchain URLs resolve on amd64 and arm64."
+          exit $fail
+
+      # A default on TARGETARCH wins over BuildKit's per-platform value, so an
+      # arm64 build would quietly download amd64 binaries and produce an image
+      # that cannot run. The symptom appears only on the architecture nobody
+      # builds in CI, which is why this is linted rather than trusted.
+      - name: TARGETARCH is not defaulted
+        run: |
+          set -euo pipefail
+          if grep -qE '^ARG TARGETARCH=' .devcontainer/Dockerfile; then
+            echo "::error::ARG TARGETARCH must have no default; a default breaks cross-platform builds"
+            exit 1
+          fi
+          grep -qE '^ARG TARGETARCH$' .devcontainer/Dockerfile
+          echo "TARGETARCH is undefaulted; BuildKit supplies it per platform."
+
+      - name: Build the image
+        run: docker build -t cgep-labs:ci .devcontainer
+
+      # A tool that installs but is not on PATH is the same as a missing tool,
+      # so assert the versions the guides tell students they will see.
+      # Deliberately a LOGIN shell. ENV PATH in a Dockerfile does not survive
+      # /etc/profile, so a non-login check would pass while the tool is missing
+      # from the terminal a student actually gets.
+      #
+      # The exit status is captured before any pipe. Piping to head makes the
+      # pipeline return head's status, which is always 0, and the check can
+      # then never fail.
+      - name: Every tool is present and runnable
+        run: |
+          set -uo pipefail
+          fail=0
+          for c in "terraform version" "aws --version" "gcloud version" \
+                   "opa version" "conftest --version" "trivy --version" \
+                   "cosign version" "trestle version" "jq --version" \
+                   "git --version" "gh --version"; do
+            if out=$(docker run --rm cgep-labs:ci bash -lc "$c" 2>&1); then
+              printf '%-12s %s\n' "${c%% *}" "$(printf '%s' "$out" | head -1)"
+            else
+              echo "::error::'$c' failed in a login shell: $(printf '%s' "$out" | head -1)"
+              fail=1
+            fi
+          done
+          exit $fail

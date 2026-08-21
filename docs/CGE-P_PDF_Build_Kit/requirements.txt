@@ -1,0 +1,3 @@
+# pandoc 3.1.3 (system binary, not pip); fonts vendored in ./fonts
+weasyprint==69.0
+pypdf==5.9.0

@@ -1,0 +1,176 @@
+# Lab 4.3: the GRC evidence pipeline.
+# Every line here is a control statement; see the guide's takeaway table.
+name: grc-gate
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# AC-6: the minimum token scope that works.
+permissions:
+  id-token: write      # AWS OIDC, and Cosign keyless in Lab 4.4
+  contents: read
+  pull-requests: write # PR comment
+
+env:
+  AWS_REGION: us-east-1
+  TF_WORKING_DIR: terraform/primitives/compliant-s3
+  TERRAFORM_VERSION: 1.15.8
+  CONFTEST_VERSION: 0.69.0
+  OPA_VERSION: 1.19.1
+  TRIVY_VERSION: 0.74.0
+
+jobs:
+  grc-gate:
+    runs-on: ubuntu-latest
+    steps:
+      # SR-3 / SR-11: actions pinned by commit SHA, not by tag.
+      # A tag is a mutable pointer. Pinning to v4 means "whatever the
+      # maintainer, or whoever compromises their account, decides v4 means."
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      - name: Install Conftest and OPA
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://github.com/open-policy-agent/conftest/releases/download/v${CONFTEST_VERSION}/conftest_${CONFTEST_VERSION}_Linux_x86_64.tar.gz" \
+            | tar -xz -C /usr/local/bin conftest
+          curl -fsSL "https://github.com/open-policy-agent/opa/releases/download/v${OPA_VERSION}/opa_linux_amd64_static" \
+            -o /usr/local/bin/opa
+          chmod +x /usr/local/bin/opa
+          conftest --version && opa version
+
+      - name: Install Trivy
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" \
+            | tar -xz -C /usr/local/bin trivy
+          trivy --version
+
+      # The gate's own tests run before it is trusted to gate anything.
+      - name: opa test
+        run: opa test -v policies/
+
+      # An unconstrained policy enforces nothing. Prove each one can fail.
+      - name: Mutation-test the policy suite
+        run: bash scripts/mutation-test.sh policies
+
+      - name: terraform fmt
+        run: terraform fmt -check -recursive terraform/
+
+      - name: Terraform plan
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          set -euo pipefail
+          terraform init -input=false
+          terraform validate
+          terraform plan -out=tfplan -no-color | tee plan.txt
+          terraform show -json tfplan > plan.json
+
+      - name: Conftest policy gate
+        id: conftest
+        run: |
+          mkdir -p evidence
+          bash scripts/policy-gate.sh \
+            --workspace "${TF_WORKING_DIR}" \
+            --policy policies \
+            --evidence evidence
+
+      - name: Trivy config scan
+        id: trivy
+        if: always()
+        run: |
+          set -euo pipefail
+          trivy config "${TF_WORKING_DIR}" \
+            --format sarif --output evidence/trivy.sarif \
+            --severity HIGH,CRITICAL --exit-code 0
+          COUNT=$(jq '[.runs[].results[]] | length' evidence/trivy.sarif)
+          echo "trivy HIGH+CRITICAL: $COUNT"
+          jq -r '.runs[].results[] | "  " + .ruleId + ": " + .message.text' evidence/trivy.sarif || true
+          test "$COUNT" -eq 0
+
+      # if: always() on everything below. A Conftest failure must not abort
+      # the job before evidence is captured; a failed run is exactly the run
+      # whose evidence you will want later.
+      - name: Copy plan into evidence
+        if: always()
+        run: |
+          cp "${TF_WORKING_DIR}/plan.json" evidence/plan.json || true
+          cp "${TF_WORKING_DIR}/plan.txt"  evidence/plan.txt  || true
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: 'v3.1.3'
+
+      - name: Bundle, sign, and upload to vault
+        id: sign
+        if: always()
+        env:
+          VAULT:  ${{ vars.EVIDENCE_VAULT }}
+          RUN_ID: ${{ github.run_id }}
+          SHA:    ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          BUNDLE="evidence-${RUN_ID}-${SHA}.tar.gz"
+
+          # Completeness: record what SHOULD be in the bundle before building it.
+          ( cd evidence && ls -1 > .manifest.txt && sha256sum * > .sha256sums.txt )
+
+          ( cd evidence && tar czf "../${BUNDLE}" . )
+          sha256sum "${BUNDLE}" | awk '{print $1}' > "${BUNDLE}.sha256"
+
+          cosign sign-blob --yes --bundle "${BUNDLE}.sig.bundle" "${BUNDLE}"
+
+          KEY_PREFIX="runs/${RUN_ID}"
+          for f in "${BUNDLE}" "${BUNDLE}.sha256" "${BUNDLE}.sig.bundle"; do
+            aws s3 cp "$f" "s3://${VAULT}/${KEY_PREFIX}/$f"
+          done
+
+          VERSION_ID=$(aws s3api head-object --bucket "${VAULT}" \
+            --key "${KEY_PREFIX}/${BUNDLE}" --query VersionId --output text)
+
+          # jq -n builds the receipt so a value containing quotes cannot
+          # corrupt the JSON, which a bash heredoc would allow.
+          jq -n \
+            --arg run_id     "${RUN_ID}" \
+            --arg vault      "${VAULT}" \
+            --arg bundle_key "${KEY_PREFIX}/${BUNDLE}" \
+            --arg version_id "${VERSION_ID}" \
+            --arg sha256     "$(cat "${BUNDLE}.sha256")" \
+            --arg commit     "${SHA}" \
+            --arg repo       "${GITHUB_REPOSITORY}" \
+            --arg workflow   "${GITHUB_WORKFLOW_REF}" \
+            '$ARGS.named' > receipt.json
+
+          aws s3 cp receipt.json "s3://${VAULT}/${KEY_PREFIX}/receipt.json"
+
+      - name: Upload evidence artifact
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: grc-evidence-${{ github.run_id }}
+          path: evidence/
+          retention-days: 365
+
+      # The pass/fail decision is the LAST step on purpose. Evidence must be
+      # signed and stored even when the gate failed: a failed run is exactly
+      # the run whose evidence you will want later.
+      - name: Enforce gate result
+        if: always()
+        run: |
+          test "${{ steps.conftest.outcome }}" = "success" || exit 1
+          test "${{ steps.trivy.outcome }}"    = "success" || exit 1

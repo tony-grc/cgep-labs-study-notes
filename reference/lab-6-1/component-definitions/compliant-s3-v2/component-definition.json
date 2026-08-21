@@ -1,0 +1,373 @@
+{
+  "component-definition": {
+    "uuid": "69c1930d-985a-4e53-b23d-9edbd8cd32b5",
+    "metadata": {
+      "title": "compliant-s3 module v2",
+      "last-modified": "2026-08-18T12:00:00.000000+00:00",
+      "version": "2.0.0",
+      "oscal-version": "1.2.1",
+      "parties": [
+        {
+          "uuid": "9b947806-e087-4996-a594-7bea22b5e566",
+          "type": "organization",
+          "name": "GRC Engineering Club"
+        },
+        {
+          "uuid": "f48458dd-7123-448e-8d6e-5ee559927866",
+          "type": "organization",
+          "name": "Amazon Web Services"
+        }
+      ]
+    },
+    "components": [
+      {
+        "uuid": "d77abdf9-8849-4677-a3ba-b0e6fc4887d2",
+        "type": "software",
+        "title": "compliant-s3",
+        "description": "Reusable Terraform pattern for an AWS S3 primary bucket plus a dedicated access-log bucket. Enforces SSE-KMS with a customer-managed key, TLS-only access, versioning on both buckets, full public access block, ACLs disabled, lifecycle retention, access logging, and required compliance tags.",
+        "purpose": "Provide a compliant-by-default S3 primitive that any team can adopt with three lines of consumer Terraform.",
+        "responsible-roles": [
+          {
+            "role-id": "provider",
+            "party-uuids": [
+              "9b947806-e087-4996-a594-7bea22b5e566"
+            ]
+          }
+        ],
+        "control-implementations": [
+          {
+            "uuid": "e3664ff7-e4e5-43a5-852f-78e27d451610",
+            "source": "https://raw.githubusercontent.com/usnistgov/oscal-content/v1.2.1/nist.gov/SP800-53/rev5/json/NIST_SP-800-53_rev5_catalog.json",
+            "description": "NIST 800-53 Rev 5 controls satisfied by this module.",
+            "implemented-requirements": [
+              {
+                "uuid": "abeceb5c-50f2-47e1-bf17-47bca6d6804d",
+                "control-id": "ac-3",
+                "description": "AC-3 - Access Enforcement (no public GCS, no open management ports) Enforced in the pipeline by Rego policy data.compliance.ac3, severity critical. Remediation: Set uniform_bucket_level_access = true and public_access_prevention = enforced. For firewalls, narrow source_ranges.",
+                "props": [
+                  {
+                    "name": "implementation-status",
+                    "value": "implemented"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "value": "aws_s3_bucket_public_access_block.primary"
+                  },
+                  {
+                    "name": "enforced-by-policy",
+                    "value": "data.compliance.ac3"
+                  }
+                ],
+                "links": [
+                  {
+                    "rel": "evidence",
+                    "href": "s3://cgep-lab-grc-evidence-vault-EXAMPLE/runs/RUN_ID/bundle.tar.gz?versionId=VERSION_ID",
+                    "text": "Signed pipeline bundle containing terraform plan.json."
+                  }
+                ]
+              },
+              {
+                "uuid": "8eea1f82-1361-40e7-9ae9-654a18508b2b",
+                "control-id": "ac-6",
+                "description": "aws_s3_bucket_ownership_controls = BucketOwnerEnforced; ACLs disabled.",
+                "props": [
+                  {
+                    "name": "implementation-status",
+                    "value": "implemented"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "value": "aws_s3_bucket_ownership_controls.primary"
+                  }
+                ],
+                "links": [
+                  {
+                    "rel": "evidence",
+                    "href": "s3://cgep-lab-grc-evidence-vault-EXAMPLE/runs/RUN_ID/bundle.tar.gz?versionId=VERSION_ID",
+                    "text": "Signed pipeline bundle containing terraform plan.json."
+                  }
+                ]
+              },
+              {
+                "uuid": "9c0a0852-11ec-45d6-a8ec-b933dbe3f6e1",
+                "control-id": "au-11",
+                "description": "aws_s3_bucket_lifecycle_configuration expires access logs at 90 days.",
+                "props": [
+                  {
+                    "name": "implementation-status",
+                    "value": "implemented"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "value": "aws_s3_bucket_lifecycle_configuration.log"
+                  }
+                ],
+                "links": [
+                  {
+                    "rel": "evidence",
+                    "href": "s3://cgep-lab-grc-evidence-vault-EXAMPLE/runs/RUN_ID/bundle.tar.gz?versionId=VERSION_ID",
+                    "text": "Signed pipeline bundle containing terraform plan.json."
+                  }
+                ]
+              },
+              {
+                "uuid": "a6a4371d-b20c-4943-b3f7-7ed579282761",
+                "control-id": "au-3",
+                "description": "AU-3 - Content of Audit Records (GCS access logging) Enforced in the pipeline by Rego policy data.compliance.au3, severity medium. Remediation: Add a logging { log_bucket = ... } block naming a dedicated log bucket.",
+                "props": [
+                  {
+                    "name": "implementation-status",
+                    "value": "implemented"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "value": "aws_s3_bucket_logging.primary"
+                  },
+                  {
+                    "name": "enforced-by-policy",
+                    "value": "data.compliance.au3"
+                  }
+                ],
+                "links": [
+                  {
+                    "rel": "evidence",
+                    "href": "s3://cgep-lab-grc-evidence-vault-EXAMPLE/runs/RUN_ID/bundle.tar.gz?versionId=VERSION_ID",
+                    "text": "Signed pipeline bundle containing terraform plan.json."
+                  }
+                ]
+              },
+              {
+                "uuid": "f869ded0-3493-462b-b7a0-d82c547c2c61",
+                "control-id": "au-6",
+                "description": "Athena review queries authored in Lab 5.2. Scheduled review and a named reviewer are not yet in place.",
+                "props": [
+                  {
+                    "name": "implementation-status",
+                    "value": "partial"
+                  }
+                ],
+                "links": [
+                  {
+                    "rel": "evidence",
+                    "href": "s3://cgep-lab-grc-evidence-vault-EXAMPLE/runs/RUN_ID/bundle.tar.gz?versionId=VERSION_ID",
+                    "text": "Signed pipeline bundle containing terraform plan.json."
+                  }
+                ]
+              },
+              {
+                "uuid": "dc3c0ab3-c0eb-405f-8948-30e205263bf1",
+                "control-id": "au-9",
+                "description": "AU-9 - Protection of Audit Information (log target versioning) Enforced in the pipeline by Rego policy data.compliance.au9, severity high. Remediation: Enable versioning { enabled = true } on the bucket used as a logging target.",
+                "props": [
+                  {
+                    "name": "implementation-status",
+                    "value": "implemented"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "value": "aws_s3_bucket_versioning.log"
+                  },
+                  {
+                    "name": "enforced-by-policy",
+                    "value": "data.compliance.au9"
+                  }
+                ],
+                "links": [
+                  {
+                    "rel": "evidence",
+                    "href": "s3://cgep-lab-grc-evidence-vault-EXAMPLE/runs/RUN_ID/bundle.tar.gz?versionId=VERSION_ID",
+                    "text": "Signed pipeline bundle containing terraform plan.json."
+                  }
+                ]
+              },
+              {
+                "uuid": "df430044-6d06-40de-a5a3-61c87978eea2",
+                "control-id": "cm-6",
+                "description": "CM-6 - Configuration Settings (required compliance labels) Enforced in the pipeline by Rego policy data.compliance.cm6, severity medium. Remediation: Add the four required labels, or consume the Lab 2.4 module which merges them.",
+                "props": [
+                  {
+                    "name": "implementation-status",
+                    "value": "implemented"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "value": "provider.aws.default_tags"
+                  },
+                  {
+                    "name": "enforced-by-policy",
+                    "value": "data.compliance.cm6"
+                  }
+                ],
+                "links": [
+                  {
+                    "rel": "evidence",
+                    "href": "s3://cgep-lab-grc-evidence-vault-EXAMPLE/runs/RUN_ID/bundle.tar.gz?versionId=VERSION_ID",
+                    "text": "Signed pipeline bundle containing terraform plan.json."
+                  }
+                ]
+              },
+              {
+                "uuid": "345faa3f-a034-462e-9623-5447a021c17b",
+                "control-id": "cm-8",
+                "description": "Provider default_tags applies ComplianceScope to every taggable resource.",
+                "props": [
+                  {
+                    "name": "implementation-status",
+                    "value": "implemented"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "value": "provider.aws.default_tags"
+                  }
+                ],
+                "links": [
+                  {
+                    "rel": "evidence",
+                    "href": "s3://cgep-lab-grc-evidence-vault-EXAMPLE/runs/RUN_ID/bundle.tar.gz?versionId=VERSION_ID",
+                    "text": "Signed pipeline bundle containing terraform plan.json."
+                  }
+                ]
+              },
+              {
+                "uuid": "ca9ea480-e8f0-44cf-93d2-6bda6f18d19a",
+                "control-id": "cp-9",
+                "description": "aws_s3_bucket_versioning on the primary bucket.",
+                "props": [
+                  {
+                    "name": "implementation-status",
+                    "value": "implemented"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "value": "aws_s3_bucket_versioning.primary"
+                  }
+                ],
+                "links": [
+                  {
+                    "rel": "evidence",
+                    "href": "s3://cgep-lab-grc-evidence-vault-EXAMPLE/runs/RUN_ID/bundle.tar.gz?versionId=VERSION_ID",
+                    "text": "Signed pipeline bundle containing terraform plan.json."
+                  }
+                ]
+              },
+              {
+                "uuid": "2fe30e4f-415f-4dfe-88b5-6c269455521a",
+                "control-id": "sc-12",
+                "description": "aws_kms_key.bucket with enable_key_rotation = true.",
+                "props": [
+                  {
+                    "name": "implementation-status",
+                    "value": "implemented"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "value": "aws_kms_key.bucket"
+                  }
+                ],
+                "links": [
+                  {
+                    "rel": "evidence",
+                    "href": "s3://cgep-lab-grc-evidence-vault-EXAMPLE/runs/RUN_ID/bundle.tar.gz?versionId=VERSION_ID",
+                    "text": "Signed pipeline bundle containing terraform plan.json."
+                  }
+                ]
+              },
+              {
+                "uuid": "e761da7a-a2f1-49d0-b5ef-2cb24bfbed18",
+                "control-id": "sc-13",
+                "description": "SSE-KMS with a customer-managed key, bucket keys enabled.",
+                "props": [
+                  {
+                    "name": "implementation-status",
+                    "value": "implemented"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "value": "aws_s3_bucket_server_side_encryption_configuration.primary"
+                  }
+                ],
+                "links": [
+                  {
+                    "rel": "evidence",
+                    "href": "s3://cgep-lab-grc-evidence-vault-EXAMPLE/runs/RUN_ID/bundle.tar.gz?versionId=VERSION_ID",
+                    "text": "Signed pipeline bundle containing terraform plan.json."
+                  }
+                ]
+              },
+              {
+                "uuid": "4dc04316-a509-47b6-b3b9-865212288b63",
+                "control-id": "sc-28",
+                "description": "SC-28 - Encryption at Rest (GCS) Enforced in the pipeline by Rego policy data.compliance.sc28, severity high. Remediation: Add an encryption { default_kms_key_name = ... } block referencing a google_kms_crypto_key you control.",
+                "props": [
+                  {
+                    "name": "implementation-status",
+                    "value": "implemented"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "value": "aws_s3_bucket_server_side_encryption_configuration.primary"
+                  },
+                  {
+                    "name": "enforced-by-policy",
+                    "value": "data.compliance.sc28"
+                  }
+                ],
+                "links": [
+                  {
+                    "rel": "evidence",
+                    "href": "s3://cgep-lab-grc-evidence-vault-EXAMPLE/runs/RUN_ID/bundle.tar.gz?versionId=VERSION_ID",
+                    "text": "Signed pipeline bundle containing terraform plan.json."
+                  }
+                ]
+              },
+              {
+                "uuid": "fce99360-4a0d-4e34-bb43-322827f918a5",
+                "control-id": "sc-8",
+                "description": "aws_s3_bucket_policy denies s3:* when aws:SecureTransport is false, on both buckets.",
+                "props": [
+                  {
+                    "name": "implementation-status",
+                    "value": "implemented"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "value": "aws_s3_bucket_policy.primary"
+                  }
+                ],
+                "links": [
+                  {
+                    "rel": "evidence",
+                    "href": "s3://cgep-lab-grc-evidence-vault-EXAMPLE/runs/RUN_ID/bundle.tar.gz?versionId=VERSION_ID",
+                    "text": "Signed pipeline bundle containing terraform plan.json."
+                  }
+                ]
+              },
+              {
+                "uuid": "502c15eb-eb79-4571-9eb0-1c9eb31ef707",
+                "control-id": "si-7",
+                "description": "Versioning preserves prior object states for integrity comparison.",
+                "props": [
+                  {
+                    "name": "implementation-status",
+                    "value": "implemented"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "value": "aws_s3_bucket_versioning.primary"
+                  }
+                ],
+                "links": [
+                  {
+                    "rel": "evidence",
+                    "href": "s3://cgep-lab-grc-evidence-vault-EXAMPLE/runs/RUN_ID/bundle.tar.gz?versionId=VERSION_ID",
+                    "text": "Signed pipeline bundle containing terraform plan.json."
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

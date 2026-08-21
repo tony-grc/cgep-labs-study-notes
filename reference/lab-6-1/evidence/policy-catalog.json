@@ -1,0 +1,37 @@
+[
+  {
+    "control": "AC-3",
+    "severity": "critical",
+    "title": "AC-3 - Access Enforcement (no public GCS, no open management ports)",
+    "package": "data.compliance.ac3",
+    "remediation": "Set uniform_bucket_level_access = true and public_access_prevention = enforced. For firewalls, narrow source_ranges."
+  },
+  {
+    "control": "AU-3",
+    "severity": "medium",
+    "title": "AU-3 - Content of Audit Records (GCS access logging)",
+    "package": "data.compliance.au3",
+    "remediation": "Add a logging { log_bucket = ... } block naming a dedicated log bucket."
+  },
+  {
+    "control": "AU-9",
+    "severity": "high",
+    "title": "AU-9 - Protection of Audit Information (log target versioning)",
+    "package": "data.compliance.au9",
+    "remediation": "Enable versioning { enabled = true } on the bucket used as a logging target."
+  },
+  {
+    "control": "CM-6",
+    "severity": "medium",
+    "title": "CM-6 - Configuration Settings (required compliance labels)",
+    "package": "data.compliance.cm6",
+    "remediation": "Add the four required labels, or consume the Lab 2.4 module which merges them."
+  },
+  {
+    "control": "SC-28",
+    "severity": "high",
+    "title": "SC-28 - Encryption at Rest (GCS)",
+    "package": "data.compliance.sc28",
+    "remediation": "Add an encryption { default_kms_key_name = ... } block referencing a google_kms_crypto_key you control."
+  }
+]

@@ -1,0 +1,39 @@
+{
+  "name": "CGE-P Labs",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+
+  // Credentials and gcloud config survive a container rebuild. Without these,
+  // every rebuild costs another `aws login` and another `gcloud auth`.
+  // They are named volumes, not host mounts, so this works identically in a
+  // Codespace where there is no host ~/.aws to bind.
+  "mounts": [
+    "source=cgep-aws,target=/home/vscode/.aws,type=volume",
+    "source=cgep-gcloud,target=/home/vscode/.config/gcloud,type=volume"
+  ],
+
+  // The volumes mount as root; the labs run as vscode.
+  "postCreateCommand": "sudo chown -R vscode:vscode /home/vscode/.aws /home/vscode/.config/gcloud",
+
+  // Matches the credential_process profile the guides use. The profile itself
+  // lives in ~/.aws/config, which the volume above preserves; Lab 0.1 Step 4
+  // creates it.
+  "remoteEnv": {
+    "AWS_PROFILE": "cgep",
+    "AWS_REGION": "us-east-1"
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "hashicorp.terraform",
+        "tsandall.opa",
+        "ms-python.python",
+        "redhat.vscode-yaml"
+      ]
+    }
+  },
+
+  "remoteUser": "vscode"
+}

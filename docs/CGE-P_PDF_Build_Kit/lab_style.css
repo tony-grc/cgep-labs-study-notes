@@ -1,0 +1,400 @@
+/* Lab variant: same brand, no forced h2 page breaks */
+/* GRC Engineering Club styling: dark + neon green, bold sans */
+
+@font-face { font-family: "Inter"; src: url("fonts/Inter-Regular.otf"); font-weight: 400; }
+@font-face { font-family: "Inter"; src: url("fonts/Inter-Italic.otf"); font-weight: 400; font-style: italic; }
+@font-face { font-family: "Inter"; src: url("fonts/Inter-SemiBold.otf"); font-weight: 600; }
+@font-face { font-family: "Inter"; src: url("fonts/Inter-Bold.otf"); font-weight: 700; }
+@font-face { font-family: "JetBrains Mono"; src: url("fonts/JetBrainsMonoNL-Regular.ttf"); font-weight: 400; }
+@font-face { font-family: "JetBrains Mono"; src: url("fonts/JetBrainsMonoNL-Bold.ttf"); font-weight: 700; }
+
+:root {
+  --ink: #0d0d0d;
+  --body: #232a33;
+  --green: #ED6F1B;
+  --green-dark: #C25708;
+  --panel: #f7f4f0;
+  --line: #ddd7d0;
+}
+
+@page {
+  size: letter;
+  margin: 22mm 19mm 20mm 19mm;
+  @bottom-left {
+    content: "GRC Engineering Club  \00b7  CGE-P Lab Curriculum v2";
+    font-family: "Inter", sans-serif;
+    font-size: 7.5pt;
+    letter-spacing: 0.5px;
+    color: #9aa1a9;
+  }
+  @bottom-right {
+    content: "Page " counter(page) " of " counter(pages);
+    font-family: "Inter", sans-serif;
+    font-size: 7.5pt;
+    color: #9aa1a9;
+  }
+}
+
+@page cover {
+  margin: 0;
+  background: #0d0d0d;
+  @bottom-left { content: none; }
+  @bottom-right { content: none; }
+}
+
+* { box-sizing: border-box; }
+
+html {
+  font-family: "Inter", sans-serif;
+  font-size: 9.6pt;
+  line-height: 1.55;
+  color: #232a33;
+}
+
+body { margin: 0; }
+
+/* ---------- Cover: full-bleed dark ---------- */
+
+.cover {
+  page: cover;
+  page-break-after: always;
+  background: #0d0d0d;
+  color: #fff;
+  padding: 60mm 22mm 0 22mm;
+  height: 279.4mm;
+}
+
+.cover .kicker {
+  display: inline-block;
+  font-size: 8.5pt;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #ED6F1B;
+  background: #2a1a0d;
+  border-radius: 1.5mm;
+  padding: 1.8mm 3.5mm;
+  margin-bottom: 8mm;
+}
+
+.cover h1 {
+  font-size: 34pt;
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.5pt;
+  margin: 0 0 9mm 0;
+  color: #ffffff;
+  border: none;
+  padding: 0;
+}
+
+.cover .tagline {
+  font-size: 12pt;
+  font-weight: 400;
+  color: #c9cfd6;
+  max-width: 132mm;
+  line-height: 1.6;
+  margin-bottom: 4mm;
+}
+
+.cover .rule {
+  width: 36mm;
+  height: 1.6mm;
+  background: #ED6F1B;
+  margin: 10mm 0 0 0;
+}
+
+.cover .meta {
+  font-size: 8.5pt;
+  color: #8b929a;
+  margin-top: 38mm;
+  line-height: 1.8;
+}
+
+.cover .meta .brand {
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 10pt;
+}
+
+.cover .motto {
+  font-size: 8.5pt;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #ED6F1B;
+  margin-top: 3mm;
+}
+
+/* ---------- Headings ---------- */
+
+h1, h2, h3, h4 {
+  font-family: "Inter", sans-serif;
+  color: #0d0d0d;
+  page-break-after: avoid;
+}
+
+h2 {
+  font-size: 15pt;
+  font-weight: 700;
+  letter-spacing: -0.3pt;
+  margin: 8mm 0 4mm 0;
+  padding-bottom: 2mm;
+  border-bottom: 0.9mm solid #ED6F1B;
+  page-break-after: avoid;
+}
+
+h3 {
+  font-size: 12pt;
+  font-weight: 700;
+  margin: 7mm 0 2.5mm 0;
+}
+
+h4 {
+  font-size: 10pt;
+  font-weight: 700;
+  margin: 5mm 0 2mm 0;
+}
+
+p { margin: 0 0 3mm 0; orphans: 3; widows: 3; }
+
+strong { color: #0d0d0d; font-weight: 700; }
+
+a { color: #C25708; text-decoration: none; font-weight: 600; }
+
+hr { display: none; }
+
+ol, ul { margin: 0 0 3.2mm 0; padding-left: 6.5mm; }
+li { margin-bottom: 1.2mm; }
+
+/* ---------- Blockquote: dark callout, site-style ---------- */
+
+blockquote {
+  margin: 4.5mm 0;
+  padding: 4mm 5.5mm;
+  border-left: 1.6mm solid #ED6F1B;
+  background: #1a1a1a;
+  color: #f0efed;
+  border-radius: 0 1.5mm 1.5mm 0;
+  page-break-inside: avoid;
+}
+blockquote p { margin: 0 0 2mm 0; }
+blockquote p:last-child { margin-bottom: 0; }
+blockquote strong { color: #ED6F1B; }
+
+/* ---------- Code ---------- */
+
+code {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 8pt;
+  background: #f6efe7;
+  border-radius: 1mm;
+  color: #3a2410;
+  /* Horizontal padding is kept small and SYMMETRIC on purpose. The tint
+     wants room to breathe, but any padding also pushes adjacent punctuation
+     away, and CSS cannot select on the neighbouring character. Generous
+     padding renders "`us-east-1`." as "us-east-1 ." and "(`x`)" as "( x)".
+     A negative margin fixes one side and worsens the other. 0.6mm is the
+     point where the tint still reads as a box and the gap stops being
+     visible next to a period or a bracket. */
+  padding: 0.3mm 0.6mm;
+}
+
+pre {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 7.8pt;
+  line-height: 1.45;
+  background: #1a1a1a;
+  color: #e8e6e3;
+  border-left: 1.4mm solid #ED6F1B;
+  border-radius: 1.5mm;
+  padding: 3.2mm 4mm;
+  margin: 3mm 0 3.5mm 0;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  page-break-inside: auto;
+  orphans: 4;
+  widows: 4;
+  box-decoration-break: clone;
+}
+
+pre code {
+  background: none;
+  padding: 0;
+  color: inherit;
+  font-size: inherit;
+}
+
+/* ---------- Tables ---------- */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 3mm 0 4.5mm 0;
+  font-size: 8.4pt;
+  line-height: 1.42;
+  page-break-inside: auto;
+}
+
+thead { display: table-header-group; }
+
+th {
+  background: #0d0d0d;
+  color: #ffffff;
+  font-weight: 700;
+  text-align: left;
+  padding: 2mm 2.5mm;
+  border: 0.25mm solid #0d0d0d;
+  border-bottom: 0.8mm solid #ED6F1B;
+}
+
+td {
+  padding: 1.8mm 2.5mm;
+  border: 0.25mm solid #ddd7d0;
+  vertical-align: top;
+}
+
+tr { page-break-inside: avoid; }
+
+tbody tr:nth-child(even) td { background: #f7f4f0; }
+
+td code { font-size: 7.7pt; }
+th code { background: #2a3140; color: #f5a35c; font-size: 7.7pt; }
+
+/* ---------- TOC ---------- */
+
+ol.toc {
+  list-style: none;
+  padding-left: 0;
+  margin-top: 5mm;
+  counter-reset: tocitem;
+}
+
+ol.toc > li {
+  font-size: 10.5pt;
+  font-weight: 600;
+  margin-bottom: 3.4mm;
+  counter-increment: tocitem;
+}
+
+ol.toc > li::before {
+  content: counter(tocitem, decimal-leading-zero);
+  font-family: "JetBrains Mono", monospace;
+  color: #C25708;
+  font-weight: 700;
+  display: inline-block;
+  width: 9mm;
+}
+
+ol.toc > li.unnum { counter-increment: none; }
+ol.toc > li.unnum::before { content: "//"; }
+
+ol.toc > li a { color: #0d0d0d; font-weight: 600; }
+
+ol.toc > li a::after {
+  content: leader(". ") target-counter(attr(href), page);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 8.5pt;
+  color: #9aa1a9;
+  font-weight: 400;
+}
+
+.cover h1 .hl { color: #ED6F1B; }
+th code { background: #3a2f26; }
+
+/* ---------- Print notice ---------- */
+.print-note {
+  font-size: 8pt;
+  color: #7a5236;
+  background: #fdf4ec;
+  border: 0.25mm solid #ED6F1B;
+  border-left: 1.2mm solid #ED6F1B;
+  border-radius: 1.2mm;
+  padding: 2.2mm 3.5mm;
+  margin: 0 0 6mm 0;
+}
+.print-note code { background: #f5e7d8; font-size: 7.5pt; }
+
+.cover .covernote {
+  font-size: 8.5pt;
+  color: #b0854f;
+  margin-top: 5mm;
+}
+
+.cover .tagline strong { color: #ffffff; }
+.cover .tagline em { color: #e8e6e3; }
+.cover .tagline code { background: #2a2a2a; color: #f5a35c; }
+
+/* ---------- Bound edition contents ---------- */
+/* The per-part contents in the Plain English Guide resolves page numbers with
+   target-counter. The bound edition cannot: its numbers are absolute across
+   merged documents, so build.py computes them and emits them literally. */
+ol.booktoc > li {
+  display: flex;
+  align-items: baseline;
+  gap: 2mm;
+}
+
+ol.booktoc > li .t { flex: 0 1 auto; }
+
+/* The leader must sit BETWEEN title and number. A ::after pseudo-element is
+   the last flex item, which puts the dots after the page number. An explicit
+   span is placed where it belongs. */
+ol.booktoc > li .lead {
+  flex: 1 1 auto;
+  border-bottom: 0.2mm dotted #b9c0c8;
+  margin: 0 1.5mm 0.9mm 1.5mm;
+}
+
+ol.booktoc > li .p {
+  flex: 0 0 auto;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9.5pt;
+  color: var(--body);
+}
+
+/* The bound edition's contents page is page 2 of a 202-page volume, so its
+   own "Page 2 of 2" counter reads as a defect. Suppress the counter there
+   and keep the brand line. Each merged part retains part-relative paging;
+   the contents is the absolute index. */
+@page booktoc {
+  @bottom-right { content: none; }
+}
+
+body.book-front .toc-page { page: booktoc; }
+
+/* ---------- Task lists (portfolio checklists) ---------- */
+/* Pandoc renders "- [ ] item" as <ul class="task-list"> with an
+   <input type="checkbox"> inside a <label>. Left alone that prints a bullet
+   AND a box, and WeasyPrint does not flow the input inline with the label
+   text, so every item breaks after the box.
+   Hiding the input and drawing the box as a ::before on the list item keeps
+   it in the text flow, needs no glyph coverage from the font, and lets the
+   item hang so wrapped text aligns under the first word rather than under
+   the box. */
+ul.task-list {
+  list-style: none;
+  padding-left: 0;
+}
+
+ul.task-list > li {
+  padding-left: 6mm;
+  text-indent: -6mm;
+  margin-bottom: 1.6mm;
+}
+
+ul.task-list input[type="checkbox"] {
+  display: none;
+}
+
+ul.task-list > li::before {
+  content: "";
+  display: inline-block;
+  width: 2.6mm;
+  height: 2.6mm;
+  border: 0.3mm solid #9aa3ad;
+  border-radius: 0.6mm;
+  margin-right: 2.4mm;
+  vertical-align: -0.1mm;
+  text-indent: 0;
+}
