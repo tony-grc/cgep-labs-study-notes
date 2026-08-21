@@ -1,7 +1,7 @@
 package compliance.cm6_aws_test
 
-import rego.v1
 import data.compliance.cm6_aws
+import rego.v1
 
 tagged := {"planned_values": {"root_module": {"resources": [{
 	"address": "aws_s3_bucket.primary",

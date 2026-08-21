@@ -1,7 +1,7 @@
 package compliance.au3_test
 
-import rego.v1
 import data.compliance.au3
+import rego.v1
 
 compliant := {"planned_values": {"root_module": {"resources": [
 	{

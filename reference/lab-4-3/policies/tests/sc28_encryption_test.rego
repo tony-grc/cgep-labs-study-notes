@@ -1,7 +1,7 @@
 package compliance.sc28_test
 
-import rego.v1
 import data.compliance.sc28
+import rego.v1
 
 compliant := {"planned_values": {"root_module": {"resources": [{
 	"address": "google_storage_bucket.good",

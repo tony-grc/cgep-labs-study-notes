@@ -1,7 +1,7 @@
 package compliance.au9_test
 
-import rego.v1
 import data.compliance.au9
+import rego.v1
 
 compliant := {"planned_values": {"root_module": {"resources": [
 	{

@@ -1,7 +1,7 @@
 package compliance.sc28_aws_test
 
-import rego.v1
 import data.compliance.sc28_aws
+import rego.v1
 
 # Fixtures mirror real `terraform show -json` shape: configuration.* holds
 # references (resolvable at plan time), planned_values.* holds values.

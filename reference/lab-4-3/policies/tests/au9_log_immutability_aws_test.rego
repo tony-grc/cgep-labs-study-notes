@@ -1,7 +1,7 @@
 package compliance.au9_aws_test
 
-import rego.v1
 import data.compliance.au9_aws
+import rego.v1
 
 # Compliant: the log bucket named as the logging target is itself versioned.
 versioned_target := {"configuration": {"root_module": {"resources": [

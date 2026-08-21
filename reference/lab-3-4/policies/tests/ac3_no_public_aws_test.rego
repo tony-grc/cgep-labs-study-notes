@@ -1,7 +1,7 @@
 package compliance.ac3_aws_test
 
-import rego.v1
 import data.compliance.ac3_aws
+import rego.v1
 
 cfg := {"root_module": {"resources": [
 	{"type": "aws_s3_bucket", "name": "primary", "expressions": {}},

@@ -1,7 +1,7 @@
 package compliance.sc8_aws_test
 
-import rego.v1
 import data.compliance.sc8_aws
+import rego.v1
 
 has_policy := {"configuration": {"root_module": {"resources": [
 	{"type": "aws_s3_bucket", "name": "primary", "expressions": {}},

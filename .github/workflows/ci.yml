@@ -69,6 +69,24 @@ jobs:
           chmod +x /usr/local/bin/opa
           opa version
 
+      # Terraform is checked with `terraform fmt -check -recursive`; Rego had
+      # no equivalent, and all 25 test files had drifted out of `opa fmt`
+      # shape. Invisible from the command line, but the Regal language server
+      # in the devcontainer flags every one of them, so a student opening a
+      # test file sees warnings on the curriculum's own code.
+      - name: opa fmt
+        run: |
+          set -uo pipefail
+          fail=0
+          while IFS= read -r f; do
+            if ! diff -q <(opa fmt "$f") "$f" >/dev/null; then
+              echo "::error file=$f::not formatted; run: opa fmt -w $f"
+              fail=1
+            fi
+          done < <(find reference -name '*.rego' | sort)
+          [ $fail -eq 0 ] && echo "All Rego is opa fmt clean."
+          exit $fail
+
       - name: opa test
         run: |
           set -uo pipefail

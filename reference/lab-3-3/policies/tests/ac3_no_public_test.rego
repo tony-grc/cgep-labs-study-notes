@@ -1,7 +1,7 @@
 package compliance.ac3_test
 
-import rego.v1
 import data.compliance.ac3
+import rego.v1
 
 compliant_bucket := {"planned_values": {"root_module": {"resources": [{
 	"address": "google_storage_bucket.good",

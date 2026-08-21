@@ -1,7 +1,7 @@
 package compliance.cm6_test
 
-import rego.v1
 import data.compliance.cm6
+import rego.v1
 
 complete := {"planned_values": {"root_module": {"resources": [{
 	"address": "google_storage_bucket.good",
