@@ -46,7 +46,7 @@ locals {
 # SC-12 / SC-13 / SC-28: the trail gets a CMK.
 # Hold this bucket to the same standard as any other. It carries the audit
 # record of the entire account, so a weaker baseline here than on a workload
-# bucket is exactly backwards.
+# bucket is exactly backward.
 # ---------------------------------------------------------------------------
 resource "aws_kms_key" "trail" {
   description             = "CMK for CloudTrail logs"

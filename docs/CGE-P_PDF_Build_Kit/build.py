@@ -87,8 +87,20 @@ def print_note(src):
             'Long code lines wrap to fit the page, so copy commands and code from '
             f'<code>docs/{src}</code> in your clone, not from the PDF.</div>')
 
-COVER_CAVEAT = ('For reading. Code lines wrap to fit the page; '
-                'copy code from the repository, not the PDF.')
+# The bound edition has no single source file, so it names the directory.
+BOOK_CAVEAT = ('For reading. Code lines wrap to fit the page; '
+               'copy code from the matching file in docs/, not the PDF.')
+
+
+def cover_caveat(src):
+    """Name the source file rather than linking to it.
+
+    A relative <a href> is the obvious answer and the wrong one: WeasyPrint
+    resolves it to an absolute file:// URL at build time, so every reader would
+    receive a link into the build machine's filesystem. Broken for them, and it
+    would put the builder's home directory into a published document."""
+    return ('For reading. Code lines wrap to fit the page; '
+            f'copy code from docs/{src}, not the PDF.')
 
 # The bound edition is a MERGE of the very PDFs that ship individually, not a
 # re-render. That makes drift impossible by construction: every section is
@@ -185,7 +197,7 @@ def build(src, outname, meta_line, is_guide):
   <h1>{two_tone(title)}</h1>
   {tag_html}
   <div class="rule"></div>
-  <div class="covernote">{COVER_CAVEAT}</div>
+  <div class="covernote">{cover_caveat(src)}</div>
   <div class="meta">
     <span class="brand">GRC Engineering Club</span><br/>
     {meta_html}{UPSTREAM_ATTRIBUTION}
@@ -260,7 +272,7 @@ def front_matter(parts, out_path):
      the curriculum overview, twelve labs and the capstone brief.</p>
   <p class="tagline">Each section is identical to its standalone PDF.</p>
   <div class="rule"></div>
-  <div class="covernote">{COVER_CAVEAT}</div>
+  <div class="covernote">{BOOK_CAVEAT}</div>
   <div class="meta">
     <span class="brand">GRC Engineering Club</span><br/>
     {UPSTREAM_ATTRIBUTION}

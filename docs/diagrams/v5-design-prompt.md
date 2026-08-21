@@ -63,9 +63,9 @@ bound document, so anything else looks foreign on the facing page.
 The accent is **orange**, `#ED6F1B`. In the source stylesheet its variable is
 misleadingly named `--green`; ignore the name and use the value.
 
-**Colour is not the hierarchy.** v4 used the accent only 24 times across the
+**Color is not the hierarchy.** v4 used the accent only 24 times across the
 whole deck against 421 uses of body ink, and that restraint was correct. Keep
-it. Do not add colour to compensate for weak type hierarchy; fix the type.
+it. Do not add color to compensate for weak type hierarchy; fix the type.
 
 **Typography: Inter for text, JetBrains Mono for anything a machine reads.**
 File paths, commands, resource names, bucket names and ARNs are JetBrains Mono.
@@ -99,7 +99,7 @@ body text at one size**, checked by `check-deck.py`.
 
 Within that, aim for roughly:
 
-| Element | Size | Weight | Colour |
+| Element | Size | Weight | Color |
 |---|---|---|---|
 | lab number | 29pt | bold | accent |
 | lab title | 20pt | bold | ink |
@@ -165,7 +165,7 @@ Every page carries the same two ideas, as **visual encodings, not regions of
 the page**:
 
 **THE HOPS.** The ordered path something takes, as **numbered arrows between
-nodes**, 1 to 4, in the accent colour. The number sits on the edge, not in a
+nodes**, 1 to 4, in the accent color. The number sits on the edge, not in a
 list. Each arrow carries a short label saying what travels along it, and where
 useful what is refused: `403, refused by the bucket itself`.
 

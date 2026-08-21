@@ -86,7 +86,7 @@ Every cloud security vendor will sell you a slicker console. CloudTrail, Config,
 
 ### Step 1 The trail bucket, on the shared baseline
 
-It is easy to hold this bucket to a lower standard than a workload bucket, on the reasoning that nothing but CloudTrail writes to it. That is exactly backwards: it carries the audit record of the entire account.
+It is easy to hold this bucket to a lower standard than a workload bucket, on the reasoning that nothing but CloudTrail writes to it. That is exactly backward: it carries the audit record of the entire account.
 
 ```hcl
 resource "aws_kms_key" "trail" {

@@ -63,7 +63,7 @@ gcloud iam service-accounts keys create /tmp/k.json \
 
 Capture that transcript. It is better evidence than any configuration dump,
 because the action **did not happen**. No finding three hours later, no
-remediation ticket. That is the strongest layer of defence in depth, and the
+remediation ticket. That is the strongest layer of defense in depth, and the
 one that will page you at 2am if you enable it carelessly, which is why the
 lab rolls out in dry run first.
 

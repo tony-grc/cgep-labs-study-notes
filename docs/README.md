@@ -39,7 +39,7 @@ realistic than governing your own.
 
 **Read that file before Lab 2.3**, and skim the starter's Terraform with it.
 Ten minutes, no setup, nothing to deploy. Every lab after it changes character:
-you stop learning SC-8 as an idea and start recognising the bucket that is
+you stop learning SC-8 as an idea and start recognizing the bucket that is
 missing it. Labs 2.3, 3.4 and 5.2 carry callouts naming which gaps that lab's
 work addresses.
 

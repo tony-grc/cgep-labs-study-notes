@@ -640,7 +640,7 @@ This vault **is** the capstone's evidence vault.
 
 - Vault encryption moved from SSE-S3 to a dedicated customer-managed KMS key, separate from the workload key, adding SC-12 and SC-13.
 - Added a bucket policy denying `aws:SecureTransport = false`, adding SC-8.
-- `capture-evidence.sh` no longer captures raw Terraform state by default. It bundles the plan and the module attestation instead, and refuses `--include-state` against a COMPLIANCE-mode vault without an explicit acknowledgement.
+- `capture-evidence.sh` no longer captures raw Terraform state by default. It bundles the plan and the module attestation instead, and refuses `--include-state` against a COMPLIANCE-mode vault without an explicit acknowledgment.
 - Added an `acknowledge_compliance_mode` guard so COMPLIANCE retention beyond 7 days must be deliberate.
 - The receipt records whether state was included, and the VersionId is read with `--query` rather than parsed out of JSON by hand.
 - Cleanup guards on object-list length instead of relying on `|| true`.

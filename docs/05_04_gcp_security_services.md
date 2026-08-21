@@ -337,7 +337,7 @@ gcloud logging read \
   --limit 5 --format=json
 ```
 
-**Turning them on is AU-2 and AU-12. Reading them is AU-6**, and the same caution from Lab 5.2 applies: a log nobody reviews is a cost centre, not a control. Log Analytics or a BigQuery sink is the GCP equivalent of the Athena setup in Lab 5.2. Build one or claim `partial`.
+**Turning them on is AU-2 and AU-12. Reading them is AU-6**, and the same caution from Lab 5.2 applies: a log nobody reviews is a cost center, not a control. Log Analytics or a BigQuery sink is the GCP equivalent of the Athena setup in Lab 5.2. Build one or claim `partial`.
 
 ### Step 5 Security Command Center
 

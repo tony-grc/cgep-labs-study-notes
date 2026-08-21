@@ -165,7 +165,7 @@ because both commands need the flag, and the second is easy to forget.
 
 A Terraform variable declared without a `default` has to come from somewhere.
 There are three somewheres, and knowing all three explains most confusing
-behaviour:
+behavior:
 
 | How | Looks like | When it is used |
 |---|---|---|
@@ -210,7 +210,7 @@ for work you are presenting as your own.
 URL, you are about to be refused.
 
 Two things that are separate and are routinely confused: **your git identity**
-(`git config user.name` and `user.email`, which is what commits are labelled
+(`git config user.name` and `user.email`, which is what commits are labeled
 with) and **your authentication** (which is what proves you may push). Setting
 the first does not give you the second. Password authentication over HTTPS
 stopped working years ago, so `gh auth login` is the short path, and inside a
@@ -361,7 +361,7 @@ Meanwhile, in Lab 0.1 when we say "harden the root user, enable MFA, never use i
 session you happen to be signed into, and it will offer you the **root**
 session without flagging that as a bad idea. Accept it and every
 `terraform apply` in this curriculum runs as root: unrestricted, unable to
-be constrained by any IAM policy, and impossible to scope down afterwards.
+be constrained by any IAM policy, and impossible to scope down afterward.
 
 It also quietly voids the exercise. Lab 4.3's OIDC role is scoped so CI can
 plan but not apply. Lab 2.5's vault denies `s3:DeleteBucket` to everyone

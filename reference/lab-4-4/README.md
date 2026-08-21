@@ -78,7 +78,7 @@ the script are tested; step 2 is not.
 `if: always()` runs the signing and upload steps even when Conftest or Trivy
 failed, and the pass/fail decision moves to the end. A failed run is exactly
 the run whose evidence you will want later, so aborting before capture is
-backwards.
+backward.
 
 ## The tamper tests
 

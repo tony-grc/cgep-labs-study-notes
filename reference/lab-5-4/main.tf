@@ -16,7 +16,7 @@ provider "google" {
 }
 
 # ---------------------------------------------------------------------------
-# Org Policy: rejection AT THE API, not a finding afterwards.
+# Org Policy: rejection AT THE API, not a finding afterward.
 #
 # enforce_mode = "dry_run" observes without blocking. Roll out that way
 # first, watch the violations, then promote to "enforce".
@@ -62,7 +62,7 @@ resource "google_org_policy_policy" "constraints" {
 # ---------------------------------------------------------------------------
 # IA-5 / AC-2: Workload Identity Federation replaces service account keys.
 #
-# Two layers of defence here, and students routinely build only one:
+# Two layers of defense here, and students routinely build only one:
 #   attribute_condition on the PROVIDER decides who may exchange a token.
 #   principalSet in the BINDING decides who may impersonate this account.
 # Set only the first and a mistake in it is unsurvivable.
@@ -118,7 +118,7 @@ resource "google_service_account_iam_binding" "wif_user" {
 # most-cited GCP audit finding because nobody turns them on.
 #
 # Turning them on is AU-2 and AU-12. READING them is AU-6, same caution as
-# Lab 5.2: a log nobody reviews is a cost centre, not a control.
+# Lab 5.2: a log nobody reviews is a cost center, not a control.
 # ---------------------------------------------------------------------------
 resource "google_project_iam_audit_config" "services" {
   for_each = toset(var.data_access_log_services)

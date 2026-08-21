@@ -53,7 +53,7 @@ will need three things:
   because AWS requires a unique address per account and most mail providers
   deliver plus-addressed mail to the same inbox.
 - **A payment card.** AWS asks for one even on the free tier and places a small
-  temporary authorisation on it, usually about a dollar, which it releases.
+  temporary authorization on it, usually about a dollar, which it releases.
 - **A phone** for verification.
 
 Choose the **Basic support plan**, which is free. Everything in this curriculum
@@ -147,7 +147,7 @@ console session to use.
 > **Read the session it offers.** `aws login` reuses whatever console session
 > you are signed into, and it will happily offer you **root** without
 > flagging that as dangerous. Root cannot be constrained by any IAM policy
-> and cannot be scoped down afterwards. If the browser shows `root`, click
+> and cannot be scoped down afterward. If the browser shows `root`, click
 > **"Sign into new session"** and sign in as the `cgep-lab` user from Step 3.
 
 Then confirm which identity you actually got:
@@ -199,7 +199,7 @@ export AWS_PROFILE=cgep
 ```
 
 That is the whole setup. `credential_process` is part of the AWS SDK
-contract, not a Terraform feature, so every tool in this course honours it.
+contract, not a Terraform feature, so every tool in this course honors it.
 
 One consequence to learn now rather than mid-lab: **re-login with
 `aws login --profile default`.** With `AWS_PROFILE=cgep` exported, a bare
@@ -210,7 +210,7 @@ An error occurred (Configuration): Profile 'cgep' is already configured
 with Credential Process credentials.
 ```
 
-That is correct behaviour, not a broken profile. `aws login` writes
+That is correct behavior, not a broken profile. `aws login` writes
 credentials into a profile, and it will not overwrite one that resolves them
 through a process. The session lives in `default`, so that is what you refresh.
 `cgep` reads through to it and needs no maintenance.
@@ -334,7 +334,7 @@ in with a Google account, so if you already have Gmail you have the identity
 half already. You still need:
 
 - **A payment card**, for the same reason as AWS. Google places a small
-  temporary authorisation and releases it.
+  temporary authorization and releases it.
 - **A phone** for verification.
 
 New accounts get a trial credit, $300 at the time of writing, valid for ninety
