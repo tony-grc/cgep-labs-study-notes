@@ -829,6 +829,20 @@ The `jq` length guard matters. `delete-objects` rejects an empty `Objects` list,
 
 The KMS key does not disappear. It enters the deletion waiting period you set with `kms_deletion_window_days` (minimum 7) and **bills the full $1/month throughout**. That is unavoidable; AWS deliberately makes key destruction slow.
 
+> **Where this lands in the capstone.** The starter application ships eight
+> named gaps in its `GAPS.md`, and the pattern you just built closes four of
+> them on a bucket you did not write:
+>
+> | Gap | What is missing in the starter | What closes it here |
+> |---|---|---|
+> | GAP-01 | `aws_s3_bucket.uploads` uses AWS-managed SSE-S3, so PHI keys are not in customer custody | your CMK plus `aws_s3_bucket_server_side_encryption_configuration` |
+> | GAP-03 | no policy denying non-TLS requests | the `aws:SecureTransport` deny, SC-8 |
+> | GAP-04 | no versioning, so a PHI overwrite is unrecoverable | `aws_s3_bucket_versioning`, CP-9 and SI-7 |
+> | GAP-07 | the Lambda role holds `s3:*` on the workload bucket | the least-privilege argument behind AC-6 |
+>
+> Worth reading `GAPS.md` now rather than at the capstone. These stop being
+> abstract controls once you have seen the resource they are missing from.
+
 ## How this feeds the capstone
 
 This is your first compliant primitive, and by the end of the course you will have a dozen.

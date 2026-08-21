@@ -77,9 +77,15 @@ REPO = "GRCEngClub/cgep-labs"
 LINK_BASE = f"https://github.com/{REPO}/blob/main/docs/"
 UPSTREAM_ATTRIBUTION = "grcengclub.com &middot; based on GRCEngClub/cgep-labs"
 
-NOTE = ('<div class="print-note"><strong>This PDF is for reading.</strong> '
-        'Long code lines wrap to fit the page, so copy commands and code '
-        f'from the repository (<code>{REPO}</code>), not from the PDF.</div>')
+def print_note(src):
+    """Point at the markdown beside this PDF rather than at a URL.
+
+    Readers have already cloned the repository: the source is sitting next to
+    the PDF they are holding, at the same version. Sending them to GitHub adds
+    a network round trip and a chance of reading a different revision."""
+    return ('<div class="print-note"><strong>This PDF is for reading.</strong> '
+            'Long code lines wrap to fit the page, so copy commands and code from '
+            f'<code>docs/{src}</code> in your clone, not from the PDF.</div>')
 
 COVER_CAVEAT = ('For reading. Code lines wrap to fit the page; '
                 'copy code from the repository, not the PDF.')
@@ -193,7 +199,7 @@ def build(src, outname, meta_line, is_guide):
 <title>{htmllib.escape(title)} - CGE-P Lab Curriculum v2</title>
 </head><body>
 {cover}
-{NOTE}
+{print_note(src)}
 {rest}
 </body></html>'''
 

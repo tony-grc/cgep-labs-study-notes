@@ -29,6 +29,23 @@ This is the v2 rewrite. It differs from v1 in one governing way: **a lab may onl
 | 6.1 | [Introduction to OSCAL](06_01_introduction_to_oscal.md) | none | Component definition + profile, validated. |
 | 7.1 | [Capstone Brief](07_01_capstone_brief.md) | AWS | The graded deliverable. |
 
+## Read the starter's gaps early
+
+The capstone hands you a real, deliberately broken application:
+[`GRCEngClub/cgep-app-starter`](https://github.com/GRCEngClub/cgep-app-starter).
+Its `GAPS.md` names eight compliance gaps you are asked to close, and the whole
+point is that you are governing code you did not write, which is harder and more
+realistic than governing your own.
+
+**Read that file before Lab 2.3**, and skim the starter's Terraform with it.
+Ten minutes, no setup, nothing to deploy. Every lab after it changes character:
+you stop learning SC-8 as an idea and start recognising the bucket that is
+missing it. Labs 2.3, 3.4 and 5.2 carry callouts naming which gaps that lab's
+work addresses.
+
+You do not need to fix all eight. Five, closed with depth and traceable through
+your OSCAL, is what passes.
+
 ## One repository, built up
 
 The labs are cumulative. Each one produces something the next consumes, and by

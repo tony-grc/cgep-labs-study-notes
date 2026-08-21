@@ -525,6 +525,21 @@ Three details worth naming:
 
 Local. Nothing in the cloud beyond Lab 2.3.
 
+> **These policies already detect capstone gaps.** The starter's `GAPS.md`
+> lists eight, and three of the AWS variants you just wrote catch one each,
+> against `aws_s3_bucket.uploads` in the starter's own Terraform:
+>
+> | Policy | Catches |
+> |---|---|
+> | `sc28_encryption_aws` | GAP-01, SSE-S3 rather than a customer CMK |
+> | `sc8_tls_required_aws` | GAP-03, no `aws:SecureTransport` deny |
+> | `au9_log_immutability_aws` | GAP-04, no versioning |
+>
+> The capstone asks for **at least five** policies detecting the most material
+> gaps, and requires that the grader can re-introduce a gap and watch your suite
+> fail closed. Three of the five already exist. Point them at the starter's plan
+> and see what happens before you write more.
+
 ## How this feeds the capstone
 
 `scripts/policy-gate.sh` is the exact script CI calls in Lab 4.3. The capstone's workflow shells out with `--workspace ./terraform`, and the plan is checked before apply.

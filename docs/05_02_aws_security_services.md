@@ -535,6 +535,14 @@ The trail bucket holds objects and is versioned, so add `force_destroy = true` o
 
 If ongoing cost worries you, the highest-impact action is unsubscribing the Security Hub standards. The hub is free; the checks bill.
 
+> **The starter's audit gaps.** `GAPS.md` closes with two the account-level
+> controls here bear on directly: **GAP-08**, an API Gateway stage with no
+> access logging, no throttling and no WAF, and **GAP-06**, a Lambda with no
+> DLQ and no X-Ray. CloudTrail gives you who called the API; neither replaces
+> the per-service logging those gaps are actually missing, and saying so
+> precisely is the difference between a real control narrative and a hopeful
+> one.
+
 ## How this feeds the capstone
 
 Capstone Layer 1 requires a multi-region CloudTrail with log-file validation writing to a dedicated bucket. That is Step 3, and the trail bucket is Step 1.
