@@ -47,7 +47,7 @@ you start one and again when you write it up.
 
 ```
 docs/           Twelve lab guides, a plain-English companion, and an index,
-                as markdown and as PDFs, plus a 226-page bound edition.
+                as markdown and as PDFs, plus a 229-page bound edition.
 docs/diagrams/  A twelve page flow diagram deck, one per lab, plus the brief
                 that produced it and a checker that measures it.
 reference/      Eleven companion workspaces (Terraform, Rego, shell, OSCAL).

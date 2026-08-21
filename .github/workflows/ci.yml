@@ -232,6 +232,34 @@ jobs:
       # the file still has the trailing blank line that terminates it, but a
       # terminal trims trailing whitespace on paste and the learner is left
       # staring at a `>` continuation prompt with no error to search for.
+      # A checklist that asks for an artifact no step produces sends the
+      # learner away to invent the command themselves, at the end of a lab,
+      # which is the worst moment to be guessing. Sixteen artifacts across ten
+      # labs were in that state before this check existed.
+      - name: every checklist artifact is produced by a step
+        run: |
+          set -uo pipefail
+          python3 - <<'PY' || exit 1
+          import re, glob, sys
+          bad = 0
+          for f in sorted(glob.glob("docs/0[2-6]_*.md")):
+              txt = open(f).read()
+              chk = re.search(r'^## Portfolio submission checklist\n(.*?)^## ', txt, re.S | re.M)
+              if not chk:
+                  continue
+              asked = set(re.findall(r'`(evidence/[a-zA-Z0-9_./-]+)`', chk.group(1)))
+              body = "\n".join(re.findall(r'^```bash\n(.*?)^```', txt, re.S | re.M))
+              made = set(re.findall(r'[>|]\s*(evidence/[a-zA-Z0-9_./-]+)', body))
+              made |= set(re.findall(r'tee\s+(evidence/[a-zA-Z0-9_./-]+)', body))
+              for a in sorted(asked - made):
+                  if a.endswith("/"):
+                      continue
+                  print(f"::error file={f}::checklist asks for {a}, no step creates it")
+                  bad += 1
+          print("Every checklist artifact is produced by a step." if not bad else "")
+          sys.exit(1 if bad else 0)
+          PY
+
       - name: no dangling line continuations
         run: |
           set -uo pipefail

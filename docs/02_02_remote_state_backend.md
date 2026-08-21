@@ -491,6 +491,21 @@ aws s3api list-objects-v2 --bucket "$BUCKET" --endpoint-url "http://s3.us-east-1
 
 Expected: `AccessDenied`. A control you have not watched deny something is a control you are guessing about.
 
+### Capture the evidence the checklist asks for
+
+```bash
+mkdir -p evidence/lab-2-2
+{
+  aws s3api get-bucket-encryption      --bucket "$BUCKET"
+  aws s3api get-bucket-versioning      --bucket "$BUCKET"
+  aws s3api get-public-access-block    --bucket "$BUCKET"
+} | tee evidence/lab-2-2/backend-verification.json
+```
+
+It is not strictly one JSON document, and that is fine: the checklist wants the
+verification output, not a schema. If you would rather it parse, wrap the three
+with `jq -s '{encryption:.[0], versioning:.[1], public_access:.[2]}'`.
+
 ## Portfolio submission checklist
 
 - [ ] `terraform/bootstrap/{main.tf,variables.tf,outputs.tf,README.md}` committed.

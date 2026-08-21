@@ -331,6 +331,20 @@ Four properties, four breaks, four catches. That table is the best page in your 
 - Each of the four tampering scenarios exits non-zero, at the expected step.
 - A bundle signed by a different identity is rejected.
 
+### Capture the evidence the checklist asks for
+
+```bash
+mkdir -p evidence/lab-4-4
+{
+  echo "### unmodified bundle, expect CHAIN INTACT"
+  bash scripts/verify-evidence.sh test-001 2>&1
+
+  echo "### tampered bundle, expect failure"
+  cp bundle.tar.gz /tmp/tampered.tar.gz && echo "x" >> /tmp/tampered.tar.gz
+  sha256sum /tmp/tampered.tar.gz 2>&1
+} | tee evidence/lab-4-4/tamper-tests.txt
+```
+
 ## Portfolio submission checklist
 
 - [ ] `.github/workflows/grc-gate.yml` with Cosign install and the bundle/sign/upload step.

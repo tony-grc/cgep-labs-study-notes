@@ -376,6 +376,20 @@ gcloud iam service-accounts keys create /tmp/k.json \
 # expect: FAILED_PRECONDITION
 ```
 
+### Capture the evidence the checklist asks for
+
+```bash
+mkdir -p evidence/lab-5-4
+gcloud projects get-iam-policy "$TF_VAR_gcp_project" --format=json \
+  > evidence/lab-5-4/iam-policy.json
+
+{
+  echo "### service account key creation, expect FAILED_PRECONDITION"
+  gcloud iam service-accounts keys create /tmp/key.json \
+    --iam-account="$SA_EMAIL" --project="$TF_VAR_gcp_project" 2>&1
+} | tee evidence/lab-5-4/enforcement-denied.txt
+```
+
 ## Portfolio submission checklist
 
 - [ ] `terraform/baselines/gcp/` committed.

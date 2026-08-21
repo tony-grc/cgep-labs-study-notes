@@ -652,6 +652,18 @@ Each broken resource flagged exactly once by the right control. The good bucket 
 - `evidence/lab-3-3/policy-catalog.json` lists all five controls.
 - After fixing the fixture, every deny set is empty.
 
+### Capture the evidence the checklist asks for
+
+```bash
+mkdir -p evidence/lab-3-3
+opa test policies/ --format=json > evidence/lab-3-3/opa-test-results.json
+bash scripts/mutation-test.sh 2>&1 | tee evidence/lab-3-3/mutation-results.txt
+```
+
+The mutation output matters more than the test results. Passing tests show the
+suite runs; the mutation log shows each rule was broken on purpose and the suite
+noticed.
+
 ## Portfolio submission checklist
 
 - [ ] `policies/` with five policies, each carrying a `# METADATA` block.

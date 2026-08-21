@@ -784,6 +784,29 @@ aws s3 cp /tmp/t.txt "s3://$BUCKET/t.txt" \
 
 Three denials and one success. That sequence is better evidence than any of the `get-*` calls, because it demonstrates enforcement rather than configuration.
 
+### Capture the evidence the checklist asks for
+
+The three denials and the success are the strongest artifact this lab produces,
+and nothing has written them down yet:
+
+```bash
+mkdir -p evidence/lab-2-3
+
+{
+  echo "### plain HTTP, expect AccessDenied (SC-8)"
+  aws s3api list-objects-v2 --bucket "$BUCKET" \
+    --endpoint-url "http://s3.us-east-1.amazonaws.com" 2>&1
+
+  echo "### upload with no encryption header, expect AccessDenied (SC-28)"
+  echo test > /tmp/t.txt
+  aws s3 cp /tmp/t.txt "s3://$BUCKET/t.txt" 2>&1
+
+  echo "### same upload naming the key, expect success"
+  aws s3 cp /tmp/t.txt "s3://$BUCKET/t.txt" \
+    --sse aws:kms --sse-kms-key-id "$KMS" 2>&1
+} | tee evidence/lab-2-3/enforcement-test.txt
+```
+
 ## Portfolio submission checklist
 
 - [ ] `terraform/primitives/compliant-s3/{main.tf,variables.tf,outputs.tf,README.md}`

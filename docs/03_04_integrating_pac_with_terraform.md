@@ -504,6 +504,21 @@ Three details worth naming:
 - Deleting the `policies/` directory makes the gate exit 2, not 0. Test this. It is the difference between a gate and a decoration.
 - `evidence/lab-3-4/conftest-results.json` exists for both runs.
 
+### Capture the evidence the checklist asks for
+
+```bash
+mkdir -p evidence/lab-3-4
+conftest test --policy policies --output json plan.json \
+  > evidence/lab-3-4/conftest-pass.json
+
+# The empty-results guard: a gate with nothing to evaluate must fail closed.
+{
+  echo "### policy directory removed, expect non-zero exit"
+  bash scripts/policy-gate.sh --policy /tmp/no-policies-here plan.json 2>&1
+  echo "exit status: $?"
+} | tee evidence/lab-3-4/inert-gate-test.txt
+```
+
 ## Portfolio submission checklist
 
 - [ ] `policies/` holds GCP and AWS variants: ten files, six control IDs.

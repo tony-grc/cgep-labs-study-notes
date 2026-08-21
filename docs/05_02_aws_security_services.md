@@ -496,6 +496,17 @@ That last command is the AU-9 evidence, and it is the one most often skipped. It
 - All three Athena queries return results, or an explainable empty set.
 - Read an object from the evidence vault, wait, then confirm the read appears in the AU-6.1 query output. **That round trip is the proof that data events work.**
 
+### Capture the evidence the checklist asks for
+
+```bash
+mkdir -p evidence/lab-5-2
+aws athena get-query-results --query-execution-id "$QID" \
+  > evidence/lab-5-2/au6-review-output.json
+```
+
+That file is what makes your AU-6 claim defensible. A query you ran once and did
+not keep is indistinguishable from a query you never ran.
+
 ## Portfolio submission checklist
 
 - [ ] `terraform/baselines/aws/` with `cloudtrail.tf`, `security_hub.tf`, `athena.tf`, optionally `config.tf`.

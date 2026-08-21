@@ -625,6 +625,41 @@ aws s3api delete-object --bucket "$VAULT" --key runs/test-001/bundle.tar.gz \
   --version-id "$VERSION_ID"  # expect AccessDenied
 ```
 
+### Capture the evidence the checklist asks for
+
+The checklist below names two files. Nothing so far has written them, so write
+them now, from the same commands you just ran rather than from memory. Paths are
+relative to your repository root.
+
+```bash
+mkdir -p evidence/lab-2-5
+
+# The receipt: re-run the capture and keep its output this time.
+scripts/capture-evidence.sh \
+  --workspace ../lab-2-3 \
+  --run-id    test-001 \
+  --vault     "$VAULT" | tee evidence/lab-2-5/receipt.json
+
+# The lock test: both refusals and the misleading success, in one transcript.
+{
+  echo "### versioned delete, expect AccessDenied (object lock)"
+  aws s3api delete-object --bucket "$VAULT" \
+    --key runs/test-001/bundle.tar.gz --version-id "$VERSION_ID" 2>&1
+
+  echo "### plain HTTP, expect AccessDenied (bucket policy, SC-8)"
+  aws s3api list-objects-v2 --bucket "$VAULT" \
+    --endpoint-url "http://s3.us-east-1.amazonaws.com" 2>&1
+
+  echo "### unversioned delete, expect SUCCESS: it writes a delete marker"
+  aws s3api delete-object --bucket "$VAULT" \
+    --key runs/test-001/bundle.tar.gz 2>&1
+} | tee evidence/lab-2-5/lock-test.txt
+```
+
+Keep the third one. A transcript showing only refusals proves Object Lock is on;
+a transcript showing a delete that *succeeds* and destroys nothing is what
+proves you understand it.
+
 ## Portfolio submission checklist
 
 - [ ] `terraform/primitives/evidence-vault/` deploys the vault as shown.

@@ -404,6 +404,18 @@ The catalog, the profile, the implementation statement, the evidence URI, and th
 - At least one evidence URI resolves to a real signed object, by version.
 - `implementation-status` values are honest: nothing marked `implemented` that you cannot demonstrate.
 
+### Capture the evidence the checklist asks for
+
+```bash
+mkdir -p evidence/lab-6-1
+trestle validate -f component-definitions/compliant-s3-v2/component-definition.json \
+  2>&1 | tee evidence/lab-6-1/trestle-validate.txt
+bash scripts/verify-oscal-graph.sh 2>&1 | tee evidence/lab-6-1/graph-verify.txt
+```
+
+`trestle validate` proves the document is well formed. Only the graph check
+proves it describes something real, which is why both go in.
+
 ## Portfolio submission checklist
 
 - [ ] `oscal/components/<your-component>.json`, trestle-validated.
