@@ -681,6 +681,46 @@ Expected, abridged:
 
 Each broken resource flagged exactly once by the right control. The good bucket is quiet, and so is the compliant log bucket, because the AU-3 exemption works.
 
+### Step 10 Close the loop: make the fixture compliant
+
+Watching the policies fire proves they can deny. It does not prove they stop
+denying once the problem is fixed, and a rule that fires on everything is as
+useless as one that fires on nothing. Six edits in `terraform/main.tf`:
+
+| Resource | Control | Change |
+|---|---|---|
+| `google_storage_bucket.bad_public` | AC-3 | `uniform_bucket_level_access = true` and `public_access_prevention = "enforced"` |
+| `google_compute_firewall.open_ssh` | AC-3 | narrow `source_ranges` to something like `["10.0.0.0/8"]` |
+| `google_storage_bucket.bad_no_cmek` | SC-28 | add an `encryption` block naming `google_kms_crypto_key.key.id` |
+| `google_storage_bucket.bad_no_labels` | CM-6 | add `labels = local.labels` |
+| `google_storage_bucket.bad_no_logging` | AU-3 | add a `logging` block targeting `google_storage_bucket.logs.name` |
+| `google_storage_bucket.bad_logs` | AU-9 | add `versioning { enabled = true }` |
+
+Copy the shapes from `google_storage_bucket.good`, which is the compliant one
+and is right there in the same file.
+
+Then replan and ask for the opposite result:
+
+```bash
+cd terraform
+terraform plan -out=tfplan && terraform show -json tfplan > plan.json
+cd ..
+bash scripts/verify.sh --expect-clean
+```
+
+`bad_logs` is the one worth pausing on. Nothing about that bucket is
+insecure on its own; it fails only because `bad_log_target` names it as a
+logging destination, and a log sink that can be overwritten is not evidence.
+The rule reads the relationship, not the resource, which is why AU-9 needed
+its own policy rather than a versioning check bolted onto AU-3.
+
+**Put the fixture back when you are done.** It is the artifact you re-run
+against, and a repository where every policy passes teaches nobody anything:
+
+```bash
+git checkout -- terraform/main.tf
+```
+
 ## Verification
 
 **An empty deny set is what a broken run looks like too.** That is the trap in
