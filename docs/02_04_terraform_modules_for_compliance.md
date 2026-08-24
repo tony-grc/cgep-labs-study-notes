@@ -587,6 +587,21 @@ Plan it. The label comes back as `cge-p-lab`, because `merge(var.labels, local.r
 
 ## Verification
 
+> **gcloud silently drops field names it does not recognize.** The projection
+> in `--format="yaml(...)"` is a filter, not a query: ask for a field that does
+> not exist and gcloud prints the fields it did understand and says nothing at
+> all about the one it did not. An earlier draft of this section asked for
+> `logging`, whose real name is `logging_config`, and the output simply had no
+> logging section in it.
+>
+> Read what that means for evidence. **A control that is genuinely missing and
+> a field name you got wrong produce identical output.** If you are verifying a
+> control and its section is absent, your first move is to confirm the field
+> name, not to conclude the control failed. The field names come from gcloud's
+> own resource model rather than from the JSON API, so they are `logging_config`
+> and `default_kms_key` even though the REST API calls them `logging` and
+> `encryption.defaultKmsKeyName`.
+
 ```bash
 # Read the names from Terraform rather than typing them. The bucket name now
 # carries a generated suffix, and this is the better habit regardless: a
@@ -596,7 +611,7 @@ BUCKET=$(terraform output -raw bucket_name)
 LOGS=$(terraform output -raw log_bucket_name)
 
 gcloud storage buckets describe "gs://$BUCKET" \
-  --format="yaml(uniform_bucket_level_access,public_access_prevention,labels,retention_policy,logging)"
+  --format="yaml(uniform_bucket_level_access,public_access_prevention,labels,retention_policy,logging_config)"
 
 gcloud storage buckets describe "gs://$BUCKET" \
   --format="value(default_kms_key,versioning_enabled)"
@@ -624,11 +639,14 @@ The negative test is the one worth keeping, because it is the proof the module
 refuses rather than merely defaults:
 
 ```bash
-( cd ../negative-test && terraform plan 2>&1 ) | tee "$EVIDENCE/negative-test.txt"
+( cd ../negative-test && terraform init -input=false >/dev/null && terraform plan 2>&1 ) \
+  | tee "$EVIDENCE/negative-test.txt"
 ```
 
 The subshell is deliberate: the `cd` ends with it, so the `tee` path stays
 relative to where you started and you are not left in a different directory.
+`negative-test` is a workspace you have never initialized, so it needs its own
+`terraform init` before it can plan.
 
 ## Portfolio submission checklist
 
