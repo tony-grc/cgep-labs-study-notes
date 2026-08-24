@@ -503,7 +503,9 @@ module "data_bucket" {
   bucket_name_suffix = "data-001"
 }
 
-output "attestation" { value = module.data_bucket.compliance_attestation }
+output "compliance_attestation" { value = module.data_bucket.compliance_attestation }
+output "bucket_name" { value = module.data_bucket.bucket_name }
+output "log_bucket_name" { value = module.data_bucket.log_bucket_name }
 output "bucket_url"  { value = module.data_bucket.bucket_url }
 ```
 
@@ -540,7 +542,7 @@ terraform apply -auto-approve tfplan
 Tail:
 
 ```
-attestation = {
+compliance_attestation = {
   "access_logging_target"    = "cgep-lab-dev-data-001-logs-9f2ac41b"
   "encryption_type"          = "cmek"
   "kms_rotation_period"      = "7776000s"

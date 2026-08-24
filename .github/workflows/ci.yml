@@ -84,6 +84,24 @@ jobs:
           exit $fail
 
 
+      - name: attestation keeps its name through the consumer
+        run: |
+          set -uo pipefail
+          # Lab 2.5's bundler runs `terraform output -json
+          # compliance_attestation` against whatever workspace it is pointed
+          # at and swallows a miss with `|| true`. A consumer that re-exports
+          # the module's attestation under any other name therefore yields an
+          # empty bundle and no error at all. Lab 2.4's consumers called it
+          # `attestation` and would have done exactly that.
+          fail=0
+          while IFS= read -r f; do
+            grep -q 'output "compliance_attestation"' "$f" || {
+              echo "::error file=$f::re-exports a module attestation but not as output \"compliance_attestation\""
+              fail=1; }
+          done < <(grep -rl 'module\.[a-z_]*\.compliance_attestation' reference --include='*.tf')
+          [ "$fail" -eq 0 ] && echo "every consumer re-exports compliance_attestation under its own name"
+          exit $fail
+
   no-secrets:
     name: no account values committed
     runs-on: ubuntu-latest

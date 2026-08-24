@@ -29,10 +29,25 @@ module "data_bucket" {
   bucket_name_suffix = "data-001"
 }
 
-output "attestation" {
+# Named compliance_attestation, matching Lab 2.3 and the module itself. The
+# name is load-bearing: Lab 2.5's evidence bundler runs
+# `terraform output -json compliance_attestation` against whatever workspace
+# it is pointed at, and swallows a miss with `|| true`. A consumer that calls
+# this something else produces an empty bundle and no error.
+output "compliance_attestation" {
   value = module.data_bucket.compliance_attestation
 }
 
 output "bucket_url" {
   value = module.data_bucket.bucket_url
+}
+
+# The verification steps read these rather than pasting a literal name, which
+# they cannot do now that the suffix is generated.
+output "bucket_name" {
+  value = module.data_bucket.bucket_name
+}
+
+output "log_bucket_name" {
+  value = module.data_bucket.log_bucket_name
 }

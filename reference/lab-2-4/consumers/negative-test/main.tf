@@ -30,7 +30,7 @@ module "data_bucket" {
   bucket_name_suffix = "should-never-exist"
 }
 
-output "attestation" {
+output "compliance_attestation" {
   value = module.data_bucket.compliance_attestation
 }
 
