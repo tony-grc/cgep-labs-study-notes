@@ -326,6 +326,9 @@ jobs:
           sys.exit(1 if bad else 0)
           PY
 
+      - name: guide script blocks match the files that ship
+        run: python3 docs/check-script-blocks.py
+
       - name: no dangling line continuations
         run: |
           set -uo pipefail
