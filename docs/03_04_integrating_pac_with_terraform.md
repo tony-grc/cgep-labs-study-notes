@@ -510,10 +510,130 @@ Three details worth naming:
 
 ## Verification
 
-- Compliant plan: exit 0, zero failures across all five namespaces.
-- Each broken plan: exit 1, with the right control cited.
-- Deleting the `policies/` directory makes the gate exit 2, not 0. Test this. It is the difference between a gate and a decoration.
-- `evidence/lab-3-4/conftest-results.json` exists for both runs.
+A gate has three outcomes and they have to be told apart: pass, fail on real
+findings, and **fail closed** because it had nothing to evaluate. The third is
+the one worth building carefully, and it is also the one this lab used to test
+incorrectly.
+
+```bash
+bash scripts/verify.sh
+```
+
+> **Exit 2 is not proof of a working guard.** The old test for fail-closed was
+>
+> ```
+> policy-gate.sh --policy /tmp/no-policies-here plan.json
+> ```
+>
+> which exits 2 because `plan.json` is not a recognized argument, the script
+> taking `--plan`. It never loads a policy and never reads the plan. That is
+> the same exit code the guard produces, so the guard could have been deleted
+> outright and this test would still have passed.
+>
+> It was checked: removing the empty-results guard makes an empty policy
+> directory exit **0**, a gate reporting success while enforcing nothing. That
+> is precisely the decoration this lab exists to prevent, and the test that was
+> supposed to catch it could not.
+>
+> So the script asserts the **message**, not just the status, and then makes
+> the argument mistake on purpose to prove the two are distinguishable.
+
+Expect the compliant fixture to pass, the degraded one to exit 1 citing SC-8,
+SC-28 and AU-9, and an empty policy directory to exit 2 saying the gate did
+not run.
+
+```bash
+#!/usr/bin/env bash
+# scripts/verify.sh
+# Verification for Lab 3.4.
+#
+# A gate has three outcomes and they must be told apart. Pass, fail on real
+# findings, and fail closed because it had nothing to evaluate. The third is
+# the one that gets faked: the guide used to test it with
+#
+#   policy-gate.sh --policy /tmp/no-policies-here plan.json
+#
+# which exits 2 because `plan.json` is not a recognized argument, before a
+# single policy is loaded or the plan is read. Same exit code as the guard it
+# claimed to be testing, so the guard could have been deleted entirely and
+# that test would still have passed.
+set -uo pipefail
+
+WORKSPACE="${1:-.}"
+cd "$WORKSPACE" 2>/dev/null || { echo "no such workspace: $WORKSPACE" >&2; exit 1; }
+
+FAILED=0
+pass() { printf '  PASS  %-10s %s\n' "$1" "$2"; }
+fail() { printf '  FAIL  %-10s %s\n' "$1" "$2" >&2; FAILED=1; }
+
+EV=$(mktemp -d)
+trap 'rm -rf "$EV"' EXIT
+EMPTY=$(mktemp -d)
+
+run() { # run POLICY_DIR PLAN -> sets RC and OUT
+  OUT=$(bash scripts/policy-gate.sh --policy "$1" --plan "$2" --evidence "$EV" 2>&1)
+  RC=$?
+}
+
+echo "=== a compliant plan passes ==="
+run policies fixtures/plan-compliant.json
+if [[ $RC -eq 0 && "$OUT" == *"policy-gate: PASS"* ]]; then
+  pass "compliant" "exit 0 and PASS"
+else
+  fail "compliant" "expected exit 0 with PASS, got exit $RC"
+fi
+
+echo "=== a degraded plan fails, citing the right controls ==="
+run policies fixtures/plan-degraded.json
+if [[ $RC -eq 1 ]]; then
+  pass "degraded" "exit 1"
+else
+  fail "degraded" "expected exit 1, got $RC"
+fi
+
+CONTROLS=$(jq -r '[.[][]?.failures[]?.msg] | .[] | capture("\\[(?<c>[A-Z]+-[0-9.]+)\\]").c' \
+  "$EV/conftest-results.json" 2>/dev/null | sort -u | paste -sd, -)
+if [[ "$CONTROLS" == "AU-9,SC-28,SC-8" ]]; then
+  pass "degraded" "cites AU-9, SC-28, SC-8"
+else
+  fail "degraded" "expected AU-9,SC-28,SC-8; got '${CONTROLS:-(none)}'"
+fi
+
+echo "=== a gate with no policies fails CLOSED, for the stated reason ==="
+run "$EMPTY" fixtures/plan-compliant.json
+if [[ $RC -eq 2 ]]; then
+  pass "fail-closed" "exit 2"
+else
+  fail "fail-closed" "expected exit 2, got $RC"
+fi
+
+# Exit 2 alone proves nothing here: an argument typo produces it too. The
+# message is what distinguishes a gate that refused to run from a gate that
+# was never invoked.
+if [[ "$OUT" == *"gate did not run"* ]]; then
+  pass "fail-closed" "reported that the gate did not run"
+else
+  fail "fail-closed" "exit 2 for the wrong reason. Output was: $(head -1 <<<"$OUT")"
+fi
+
+# And prove the distinction is real, by making the mistake on purpose.
+BAD=$(bash scripts/policy-gate.sh --policy policies fixtures/plan-compliant.json 2>&1)
+BADRC=$?
+if [[ $BADRC -eq 2 && "$BAD" == *"Unknown arg"* ]]; then
+  pass "fail-closed" "a bad argument also exits 2, which is why the message is checked"
+else
+  fail "fail-closed" "expected a positional plan to be rejected with exit 2"
+fi
+
+rmdir "$EMPTY" 2>/dev/null
+echo
+if [[ $FAILED -eq 0 ]]; then
+  echo "VERIFIED: the gate passes, fails, and fails closed, each for its own reason."
+else
+  echo "NOT VERIFIED: the gate does not behave as described. Do not capture evidence yet." >&2
+fi
+exit $FAILED
+```
 
 ### Capture the evidence the checklist asks for
 
@@ -521,22 +641,27 @@ Three details worth naming:
 # evidence/ lives at the repository root, not in the workspace you are in
 EVIDENCE="$(git rev-parse --show-toplevel)/evidence/lab-3-4"
 mkdir -p "$EVIDENCE"
-conftest test --policy policies --output json plan.json \
-  > "$EVIDENCE/conftest-pass.json"
 
-# The empty-results guard: a gate with nothing to evaluate must fail closed.
-{
-  echo "### policy directory removed, expect non-zero exit"
-  bash scripts/policy-gate.sh --policy /tmp/no-policies-here plan.json 2>&1
-  echo "exit status: $?"
-} | tee "$EVIDENCE/inert-gate-test.txt"
+# Both runs, kept as separate artifacts. The gate always writes
+# conftest-results.json, so each run is renamed before the next overwrites it.
+bash scripts/policy-gate.sh --plan fixtures/plan-compliant.json --evidence "$EVIDENCE"
+mv "$EVIDENCE/conftest-results.json" "$EVIDENCE/conftest-pass.json"
+
+# The degraded run exits 1 by design, so it needs `|| true` or the mv is
+# skipped and you lose the more interesting of the two files.
+bash scripts/policy-gate.sh --plan fixtures/plan-degraded.json --evidence "$EVIDENCE" || true
+mv "$EVIDENCE/conftest-results.json" "$EVIDENCE/conftest-fail.json"
+
+# The three outcomes, each proven for its own reason.
+bash scripts/verify.sh 2>&1 | tee "$EVIDENCE/inert-gate-test.txt"
 ```
 
 ## Portfolio submission checklist
 
 - [ ] `policies/` holds GCP and AWS variants: ten files, six control IDs.
 - [ ] `scripts/policy-gate.sh` committed and executable.
-- [ ] `evidence/lab-3-4/conftest-pass.json` and `conftest-fail.json`.
+- [ ] `evidence/lab-3-4/conftest-pass.json`
+- [ ] `evidence/lab-3-4/conftest-fail.json`
 - [ ] `evidence/lab-3-4/inert-gate-test.txt`, showing the gate exits non-zero with no policies present.
 - [ ] `policies/README.md` noting which file targets which cloud, and the SC-8 plan-time limitation.
 
