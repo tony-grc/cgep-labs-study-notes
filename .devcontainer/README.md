@@ -29,7 +29,7 @@ machine or your Codespace builds from it; nothing is published to a registry.
 
 | Tool | Version | Used by |
 |---|---|---|
-| terraform | 1.10.5 | 2.2 onward |
+| terraform | 1.15.8 | 2.2 onward |
 | aws | v2, current | every AWS lab |
 | gcloud | current | 2.4, 5.4 |
 | opa | 1.19.1 | 3.3 |

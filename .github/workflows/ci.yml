@@ -423,6 +423,32 @@ jobs:
       # The container and Lab 0.1 install the same tools at the same versions.
       # They live in two files, so they drift silently unless something
       # compares them.
+      - name: Workflow pins agree with the container
+        run: |
+          set -uo pipefail
+          # CI validated every Terraform config on 1.15.8 while the container
+          # shipped 1.10.5. Nothing compared them, so CI green did not mean
+          # green on the version students actually run, and a state file
+          # written by the newer binary is one the older one refuses to open.
+          fail=0
+          declare -A DOCK
+          while IFS='=' read -r k v; do DOCK[$k]=$v; done < <(
+            grep -oE '^ARG [A-Z_]+_VERSION=[0-9.]+' .devcontainer/Dockerfile | sed 's/^ARG //')
+          while IFS= read -r wf; do
+            while IFS= read -r line; do
+              key=$(echo "$line" | grep -oE '[A-Z_]+_VERSION')
+              val=$(echo "$line" | sed "s/.*:[[:space:]]*//" | tr -d "'\"")
+              want=${DOCK[$key]:-}
+              [ -n "$want" ] || continue
+              if [ "$val" != "$want" ]; then
+                echo "::error file=$wf::$key is $val here and $want in the Dockerfile"
+                fail=1
+              fi
+            done < <(grep -oE "^[[:space:]]+[A-Z_]+_VERSION:[[:space:]]*[0-9.'\"]+" "$wf")
+          done < <(find . -path '*/workflows/*.yml' -not -path './.git/*' | sort)
+          [ $fail -eq 0 ] && echo "Every workflow pin matches the container."
+          exit $fail
+
       - name: Container pins agree with Lab 0.1, and report staleness
         env:
           GH_TOKEN: ${{ github.token }}

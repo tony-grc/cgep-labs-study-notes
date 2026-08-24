@@ -795,7 +795,7 @@ case ":$PATH:" in *":$HOME/.local/bin:"*) : ;; *) echo 'export PATH="$HOME/.loca
 **Terraform** (check the current version at `https://checkpoint-api.hashicorp.com/v1/check/terraform`):
 
 ```bash
-TF_VERSION=1.10.5
+TF_VERSION=1.15.8
 cd /tmp
 curl -fsSLO "https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip"
 curl -fsSLO "https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_SHA256SUMS"

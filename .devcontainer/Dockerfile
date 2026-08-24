@@ -9,7 +9,7 @@
 # together; CI's pin-freshness job reports when a pin falls behind upstream.
 FROM mcr.microsoft.com/devcontainers/base:bookworm
 
-ARG TERRAFORM_VERSION=1.10.5
+ARG TERRAFORM_VERSION=1.15.8
 ARG OPA_VERSION=1.19.1
 ARG CONFTEST_VERSION=0.69.0
 ARG TRIVY_VERSION=0.74.0
