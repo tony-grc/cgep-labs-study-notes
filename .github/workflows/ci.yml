@@ -222,6 +222,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: every script declares bash
+        run: |
+          set -uo pipefail
+          # bash -n parses [[ ]] happily and dash only fails on it at run time,
+          # so a script with no shebang passes every check here and then breaks
+          # for whoever runs it under a shell that is not bash.
+          # capture-evidence.sh shipped exactly that way, chmod +x and all.
+          fail=0
+          while IFS= read -r s; do
+            head -1 "$s" | grep -q '^#!/usr/bin/env bash$' \
+              || { echo "::error file=$s::first line must be #!/usr/bin/env bash"; fail=1; }
+          done < <(find . -name '*.sh' -not -path './.git/*' | sort)
+          [ "$fail" -eq 0 ] && echo "every script declares bash"
+          exit $fail
+
       - name: bash -n every script
         run: |
           set -uo pipefail

@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # scripts/capture-evidence.sh
 # Usage:
 #   capture-evidence.sh --workspace <path> --run-id <id> --vault <bucket>

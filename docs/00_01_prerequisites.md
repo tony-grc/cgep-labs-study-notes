@@ -889,6 +889,14 @@ pipx install compliance-trestle
 
 ### Step 14 Verify the whole toolchain
 
+This one ships as a file, so you can run it instead of pasting it:
+
+```bash
+bash reference/lab-0-1/scripts/check-prereqs.sh
+```
+
+It is reproduced here so you can read what it checks before you run it.
+
 ```bash
 #!/usr/bin/env bash
 # scripts/check-prereqs.sh
@@ -914,7 +922,7 @@ check jq        "jq --version"
 check gh        "gh --version"
 
 echo "=== AWS ==="
-aws sts get-caller-identity --profile "${AWS_PROFILE:-cgep-lab}" 2>&1 | head -4 || FAIL=1
+aws sts get-caller-identity --profile "${AWS_PROFILE:-cgep}" 2>&1 | head -4 || FAIL=1
 
 echo "=== GCP ==="
 gcloud config get-value project 2>&1 | head -1
