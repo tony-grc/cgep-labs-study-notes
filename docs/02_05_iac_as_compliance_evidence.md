@@ -601,6 +601,10 @@ Lab 5.2 scopes CloudTrail data events to this vault, and needs its ARN:
 
 ```bash
 vault=$(terraform output -raw vault_name) &&
+  # Delete any previous value before appending, so re-running this lab updates
+  # cgep.env rather than stacking a second export that silently shadows the
+  # first.
+  sed -i '/^export TF_VAR_evidence_vault_arn=/d' ../../../cgep.env
   echo "export TF_VAR_evidence_vault_arn=arn:aws:s3:::$vault" >> ../../../cgep.env
 source ../../../cgep.env
 ```

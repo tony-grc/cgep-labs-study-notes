@@ -448,12 +448,21 @@ ID and a random suffix. Read them out rather than retyping them:
 
 ```bash
 bucket=$(terraform output -raw state_bucket) &&
-kms=$(terraform output -raw state_kms_key_arn) && {
+kms=$(terraform output -raw state_kms_key_arn) &&
+sed -i '/^export TF_VAR_state_bucket=/d;/^export TF_VAR_state_kms_arn=/d' ../../cgep.env &&
+{
   echo "export TF_VAR_state_bucket=$bucket"
   echo "export TF_VAR_state_kms_arn=$kms"
 } >> ../../cgep.env
 source ../../cgep.env
 ```
+
+The `sed` deletes any previous value before the append, so re-running the lab
+updates `cgep.env` instead of stacking a second `export` that silently
+shadows the first. It runs **before** the redirect rather than inside the
+braces: `sed -i` replaces the file, and a `>>` that is already open would
+carry on writing to the old inode, which is now unlinked. The lines would
+simply vanish.
 
 The `&&` chain is not decoration. Run this before the apply and `terraform
 output` exits non-zero with a warning on stderr, and a naive version would

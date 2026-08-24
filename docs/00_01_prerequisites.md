@@ -1014,12 +1014,29 @@ own. **You do not need a `terraform.tfvars` and you do not need `-var` flags.**
 Where a lab shows those, they are the alternative for anyone not using this
 file; if you sourced `cgep.env` you can leave them off.
 
-If you would rather not source it by hand each time, add it to your shell
-profile, but note that it only makes sense inside this repository:
+**In the container this is already done for you.** The devcontainer's
+`postStartCommand` adds the line on every start, pointing at wherever your
+repository is actually mounted. That placement is deliberate: `~/.bashrc` lives
+in the image rather than in a mounted volume, so a container rebuild throws it
+away, and `postStartCommand` runs again afterwards and puts it back.
+
+Outside a container, add it yourself. Derive the path rather than typing one:
+your repository is named whatever you named it when you created it from the
+template, so a hardcoded path is a line that silently does nothing.
 
 ```bash
-echo '[ -f ~/cgep-labs-study-notes/cgep.env ] && source ~/cgep-labs-study-notes/cgep.env' >> ~/.bashrc
+REPO=$(git rev-parse --show-toplevel)
+grep -q cgep.env ~/.bashrc \
+  || echo "if [ -f \"$REPO/cgep.env\" ]; then . \"$REPO/cgep.env\"; fi" >> ~/.bashrc
 ```
+
+The `if` form matters more than it looks. Writing `[ -f ... ] && . ...` leaves
+your shell's exit status at 1 whenever the file is absent, which shows up in
+prompts that display it and in any script that checks `$?` early.
+
+> **When Terraform prompts you for a variable, that is this.** A fresh shell,
+> or a rebuilt container, and nothing sourced. Answering the prompt works once
+> and teaches you nothing. Press Ctrl+C, source the file, and run it again.
 
 ### Step 17 Add values as labs produce them
 
@@ -1029,6 +1046,11 @@ tells you to append its outputs, in this shape:
 
 ```bash
 cd reference/lab-2-2
+# Delete any previous value first, so re-running a lab updates cgep.env rather
+# than stacking a second export that silently shadows the first. This runs
+# before the redirect on purpose: sed -i replaces the file, and an already-open
+# >> would keep writing to the old inode.
+sed -i '/^export TF_VAR_state_bucket=/d;/^export TF_VAR_state_kms_arn=/d' ../../cgep.env
 {
   echo "export TF_VAR_state_bucket=$(terraform output -raw state_bucket)"
   echo "export TF_VAR_state_kms_arn=$(terraform output -raw state_kms_key_arn)"

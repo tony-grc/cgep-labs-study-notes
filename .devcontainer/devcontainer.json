@@ -21,8 +21,14 @@
   // before the student has done anything wrong. Idempotent: it appends only if
   // the stanza is missing, and it writes no credentials, only the instruction
   // to resolve them through the CLI.
-  "postStartCommand": "sudo chown -R vscode:vscode /home/vscode/.aws /home/vscode/.config/gcloud && grep -q '^\\[profile cgep\\]' /home/vscode/.aws/config 2>/dev/null || printf '\\n[profile cgep]\\nregion = us-east-1\\ncredential_process = aws configure export-credentials --profile default --format process\\n' >> /home/vscode/.aws/config",
+  "postStartCommand": "sudo chown -R vscode:vscode /home/vscode/.aws /home/vscode/.config/gcloud && grep -q '^\\[profile cgep\\]' /home/vscode/.aws/config 2>/dev/null || printf '\\n[profile cgep]\\nregion = us-east-1\\ncredential_process = aws configure export-credentials --profile default --format process\\n' >> /home/vscode/.aws/config; grep -q cgep.env /home/vscode/.bashrc || echo 'if [ -f \"${containerWorkspaceFolder}/cgep.env\" ]; then . \"${containerWorkspaceFolder}/cgep.env\"; fi' >> /home/vscode/.bashrc",
 
+  // The bashrc line is installed here rather than by hand because ~/.bashrc
+  // lives in the image, not in a mounted volume, so a container rebuild throws
+  // it away. postStartCommand runs on every start, so it comes back. It also
+  // uses containerWorkspaceFolder rather than a fixed path: your repository is
+  // named whatever you named it, and in a container it is under /workspaces.
+  //
   // The profile the postStartCommand guarantees. You still run `aws login
   // --remote --profile default` yourself; the container holds no credentials.
   "remoteEnv": {
