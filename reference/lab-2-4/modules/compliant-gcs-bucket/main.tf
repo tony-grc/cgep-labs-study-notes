@@ -8,6 +8,7 @@ terraform {
   required_version = ">= 1.9"
   required_providers {
     google = { source = "hashicorp/google", version = "~> 5.0" }
+    random = { source = "hashicorp/random", version = "~> 3.6" }
   }
   # No provider block. Consumers configure it; this module inherits it.
   # A module carrying its own provider cannot be reused across regions or
@@ -26,10 +27,25 @@ locals {
 
   effective_labels = merge(var.labels, local.required_labels)
 
-  bucket_name = "${var.project_label}-${var.environment}-${var.bucket_name_suffix}"
-  log_name    = "${var.project_label}-${var.environment}-${var.bucket_name_suffix}-logs"
-  keyring_id  = "${var.bucket_name_suffix}-ring"
-  key_id      = "${var.bucket_name_suffix}-key"
+  # GCS bucket names sit in ONE namespace shared by every Google customer, so
+  # a fixed name is a name a stranger may already hold. Lab 2.3 met the same
+  # wall on S3 and answers it the same way: generate a suffix, allow an
+  # override when a name has to be predictable.
+  effective_suffix = coalesce(var.bucket_suffix, random_id.bucket_suffix.hex)
+
+  bucket_name = "${var.project_label}-${var.environment}-${var.bucket_name_suffix}-${local.effective_suffix}"
+  log_name    = "${var.project_label}-${var.environment}-${var.bucket_name_suffix}-logs-${local.effective_suffix}"
+
+  # KMS names are scoped to this project and location, not to Google, so they
+  # need no random suffix and deliberately do not carry one. A key ring cannot
+  # be deleted from a project, so a name that churns on every apply leaves an
+  # orphan behind permanently.
+  keyring_id = "${var.environment}-${var.bucket_name_suffix}-ring"
+  key_id     = "${var.environment}-${var.bucket_name_suffix}-key"
+}
+
+resource "random_id" "bucket_suffix" {
+  byte_length = 4
 }
 
 data "google_storage_project_service_account" "gcs" {

@@ -642,7 +642,12 @@ output "compliance_attestation" {
     ]) == "BucketOwnerEnforced"
     tls_required          = true
     access_logging_target = aws_s3_bucket_logging.primary.target_bucket
-    log_retention_days    = var.log_retention_days
+    # Derived, like every other field here. Reading var.log_retention_days
+    # would attest to what we asked for rather than what the bucket enforces.
+    log_retention_days = one([
+      for r in aws_s3_bucket_lifecycle_configuration.log.rule :
+      r.expiration[0].days if r.id == "expire-access-logs"
+    ])
   }
 }
 ```

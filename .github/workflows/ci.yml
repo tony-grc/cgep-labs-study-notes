@@ -57,6 +57,33 @@ jobs:
                    -exec dirname {} \; | sort -u)
           exit $fail
 
+      - name: attestation fields are derived, never asserted
+        run: |
+          set -uo pipefail
+          # An attestation that repeats its own input cannot be wrong, which
+          # means it cannot be right either: a hardcoded encryption_type =
+          # "cmek" still says cmek after the encryption block is deleted, and
+          # retention_policy_locked = var.lock_retention_policy reports false
+          # on a bucket somebody locked from the console. Both shipped in Lab
+          # 2.4 and one in Lab 2.3. Every value in a compliance_attestation
+          # must be read back from a resource.
+          fail=0
+          while IFS= read -r f; do
+            awk '/output "compliance_attestation"/,/^}/' "$f" \
+              | sed 's/#.*//' \
+              | grep -nE '^[[:space:]]+[a-z_]+[[:space:]]*=[[:space:]]*var\.' \
+              | while IFS= read -r hit; do
+                  echo "::error file=$f::attestation echoes an input: $hit"
+                done
+            if awk '/output "compliance_attestation"/,/^}/' "$f" | sed 's/#.*//' \
+               | grep -qE '^[[:space:]]+[a-z_]+[[:space:]]*=[[:space:]]*var\.'; then
+              fail=1
+            fi
+          done < <(grep -rl 'compliance_attestation' reference --include='*.tf')
+          [ "$fail" -eq 0 ] && echo "every attestation field is derived from a resource"
+          exit $fail
+
+
   no-secrets:
     name: no account values committed
     runs-on: ubuntu-latest

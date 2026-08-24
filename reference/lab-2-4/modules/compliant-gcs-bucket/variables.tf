@@ -77,7 +77,7 @@ variable "lock_retention_policy" {
 
 variable "bucket_name_suffix" {
   type        = string
-  description = "Globally-unique suffix appended to the bucket name."
+  description = "Name of this bucket instance, e.g. data-001. Not globally unique on its own; see bucket_suffix."
   validation {
     condition     = can(regex("^[a-z0-9-]{3,30}$", var.bucket_name_suffix))
     error_message = "bucket_name_suffix must be 3-30 lowercase alphanumerics or hyphens."
@@ -88,4 +88,18 @@ variable "labels" {
   type        = map(string)
   description = "Optional additional labels. Required compliance labels merge on top."
   default     = {}
+}
+
+# Mirrors var.bucket_suffix in Lab 2.3, for the same reason and with the same
+# escape hatch: leave it null and the module generates one, set it when a name
+# has to stay stable across a rebuild.
+variable "bucket_suffix" {
+  type        = string
+  default     = null
+  description = "Fixed suffix for global uniqueness. Null generates one."
+
+  validation {
+    condition     = var.bucket_suffix == null || can(regex("^[a-z0-9-]{3,20}$", coalesce(var.bucket_suffix, "gen")))
+    error_message = "bucket_suffix must be 3-20 lowercase alphanumerics or hyphens."
+  }
 }

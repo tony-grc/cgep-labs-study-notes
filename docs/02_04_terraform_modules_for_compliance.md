@@ -42,19 +42,6 @@ Lab 6.1 encodes this. Keep it in mind while you write the module.
 - `gcloud services enable cloudkms.googleapis.com`.
 - Terraform `>= 1.9`. The cross-variable validation in Step 3 needs it.
 
-> **Read the Cleanup section before you apply this one.** Two settings in this
-> module create things you cannot undo on a lab timescale:
->
-> - **A locked retention policy makes the bucket undestroyable** until every
->   object in it ages out. Lock it with `retention_days = 365` and the bucket,
->   and the project's tidiness, are committed for a year.
-> - **GCP KMS keys are never truly deleted.** Destroying a key version starts a
->   30-day soft delete, and the key and keyring objects remain afterward.
->
-> Neither is a mistake in the module. Both are the point: durability you cannot
-> quietly revoke is what makes the control worth citing. But they are decisions
-> to make deliberately at the start rather than discover at teardown.
-
 ## Estimated time & cost
 
 - Time: 60 to 75 minutes.
@@ -91,7 +78,7 @@ Read the Cleanup section before you apply. GCP KMS keys cannot be truly deleted,
     +-------------------------------------------------------+
 ```
 
-Two buckets now, not one. The access-log bucket is an addition here, and it exists for the same reason it exists in Lab 2.3.
+Two buckets now, not one. The access-log bucket is the v2 addition, and it exists for the same reason it exists in Lab 2.3.
 
 ## Step-by-step walkthrough
 
@@ -115,6 +102,7 @@ terraform {
   required_version = ">= 1.9"
   required_providers {
     google = { source = "hashicorp/google", version = "~> 5.0" }
+    random = { source = "hashicorp/random", version = "~> 3.6" }
   }
   # No provider block. Consumers configure it; this module inherits it.
 }
@@ -131,10 +119,23 @@ locals {
 
   effective_labels = merge(var.labels, local.required_labels)
 
-  bucket_name = "${var.project_label}-${var.environment}-${var.bucket_name_suffix}"
-  log_name    = "${var.project_label}-${var.environment}-${var.bucket_name_suffix}-logs"
-  keyring_id  = "${var.bucket_name_suffix}-ring"
-  key_id      = "${var.bucket_name_suffix}-key"
+  # GCS bucket names sit in ONE namespace shared by every Google customer, so
+  # a fixed name is a name a stranger may already hold. Lab 2.3 met the same
+  # wall on S3 and answers it the same way.
+  effective_suffix = coalesce(var.bucket_suffix, random_id.bucket_suffix.hex)
+
+  bucket_name = "${var.project_label}-${var.environment}-${var.bucket_name_suffix}-${local.effective_suffix}"
+  log_name    = "${var.project_label}-${var.environment}-${var.bucket_name_suffix}-logs-${local.effective_suffix}"
+
+  # KMS names are scoped to this project and location, not to Google, so they
+  # need no random suffix and deliberately do not carry one. A key ring cannot
+  # be deleted from a project, so a name that churns leaves an orphan forever.
+  keyring_id = "${var.environment}-${var.bucket_name_suffix}-ring"
+  key_id     = "${var.environment}-${var.bucket_name_suffix}-key"
+}
+
+resource "random_id" "bucket_suffix" {
+  byte_length = 4
 }
 
 data "google_storage_project_service_account" "gcs" {
@@ -261,6 +262,20 @@ resource "google_storage_bucket" "bucket" {
 
 The `depends_on` is genuine. The GCS service account must hold encrypt/decrypt on the key **before** the bucket is created, and there is no data dependency between the bucket and the IAM binding for Terraform to infer it from. Same shape as the legitimate `depends_on` in Lab 2.3.
 
+> **Why the bucket name has a random tail, and the key ring does not.**
+> A GCS bucket name is not unique to your project, it is unique across every
+> Google customer alive. `cgep-lab-dev-data-001` is exactly the name every
+> other student on this lab would pick, and the first one to run it owns it
+> forever. Terraform reports that as `Error 409` partway through an apply,
+> after the key ring and log bucket already exist, which is the worst moment
+> to discover a naming problem.
+>
+> KMS key rings and keys are scoped to your project and location, so they have
+> no such contest and get no suffix. That is deliberate rather than an
+> oversight: **a key ring cannot be deleted from a Google project**, so a name
+> that changes on every apply leaves a permanent orphan behind each time. Put
+> randomness where the namespace is shared, and nowhere else.
+
 ### Step 2 The two-mechanism retention lesson
 
 `retention_policy` and `lifecycle_rule` both appear above, and students routinely think one is redundant. They do opposite jobs:
@@ -273,6 +288,17 @@ The `depends_on` is genuine. The GCS service account must hold encrypt/decrypt o
 | Reversible | Only if `is_locked = false` | Yes |
 
 A compliance regime usually wants both: keep for at least N (you cannot destroy evidence early), delete after M (you do not hold data longer than the policy allows). Holding data past its retention limit is itself a finding under most privacy regimes.
+
+> **One asymmetry worth noticing before you are asked about it.** The data
+> bucket sets a CMEK; the log bucket does not, so its objects are encrypted
+> with a Google-managed key. Lab 2.3 did give the S3 log bucket the same CMK,
+> and the mismatch is real. The reason is that GCS delivers usage logs through
+> a Google-owned writer, `cloud-storage-analytics@google.com`, which would
+> need encrypt rights on your key before it could write into a CMEK bucket,
+> and granting a shared Google group access to your key is a trade rather than
+> an obvious win. Both positions are defensible. **What is not defensible is
+> leaving it undecided and unwritten**, which is how an assessor finds it
+> first. If you take this to a capstone, say which you chose and why.
 
 ### Step 3 `variables.tf` with validation
 
@@ -348,10 +374,23 @@ variable "lock_retention_policy" {
 
 variable "bucket_name_suffix" {
   type        = string
-  description = "Globally-unique suffix appended to the bucket name."
+  description = "Name of this bucket instance, e.g. data-001. Not globally unique on its own; see bucket_suffix."
   validation {
     condition     = can(regex("^[a-z0-9-]{3,30}$", var.bucket_name_suffix))
     error_message = "bucket_name_suffix must be 3-30 lowercase alphanumerics or hyphens."
+  }
+}
+
+# Mirrors var.bucket_suffix in Lab 2.3, same job and same escape hatch: leave
+# it null and the module generates one, set it when a name must stay stable.
+variable "bucket_suffix" {
+  type        = string
+  default     = null
+  description = "Fixed suffix for global uniqueness. Null generates one."
+
+  validation {
+    condition     = var.bucket_suffix == null || can(regex("^[a-z0-9-]{3,20}$", coalesce(var.bucket_suffix, "gen")))
+    error_message = "bucket_suffix must be 3-20 lowercase alphanumerics or hyphens."
   }
 }
 
@@ -393,17 +432,28 @@ output "kms_key_id" {
 output "compliance_attestation" {
   description = "Computed attestation of the controls this module enforces."
   value = {
-    encryption_type          = "cmek"
-    kms_key_id               = google_kms_crypto_key.key.id
+    # Read back from the resource, never from the variable that set it. An
+    # attestation that repeats its own input cannot be wrong, which means it
+    # cannot be right either: delete the encryption block and a hardcoded
+    # "cmek" still says cmek.
+    encryption_type          = length(google_storage_bucket.bucket.encryption) > 0 ? "cmek" : "google-managed"
+    kms_key_id               = one([for e in google_storage_bucket.bucket.encryption : e.default_kms_key_name])
     kms_rotation_period      = google_kms_crypto_key.key.rotation_period
     versioning_enabled       = google_storage_bucket.bucket.versioning[0].enabled
     log_versioning_enabled   = google_storage_bucket.log.versioning[0].enabled
     public_access_prevention = google_storage_bucket.bucket.public_access_prevention
     uniform_access_enforced  = google_storage_bucket.bucket.uniform_bucket_level_access
     access_logging_target    = google_storage_bucket.bucket.logging[0].log_bucket
-    retention_period_days    = var.retention_days
-    retention_policy_locked  = var.lock_retention_policy
-    log_retention_days       = var.log_retention_days
+    # is_locked is the sharp case. Locking is a one-way API call that can be
+    # made from the console without Terraform, so var.lock_retention_policy
+    # would attest false on a bucket that is genuinely, permanently locked.
+    retention_period_days   = one([for r in google_storage_bucket.bucket.retention_policy : r.retention_period / 86400])
+    retention_policy_locked = one([for r in google_storage_bucket.bucket.retention_policy : r.is_locked])
+
+    log_retention_days = one([
+      for r in google_storage_bucket.log.lifecycle_rule : r.condition[0].age
+      if r.action[0].type == "Delete"
+    ])
 
     required_labels_present = alltrue([
       for k in keys(local.required_labels) :
@@ -445,7 +495,7 @@ module "data_bucket" {
   project_label      = "cgep-lab"
   environment        = "dev"
   retention_days     = 30
-  bucket_name_suffix = "dev-data-001"
+  bucket_name_suffix = "data-001"
 }
 
 output "attestation" { value = module.data_bucket.compliance_attestation }
@@ -466,7 +516,7 @@ module "data_bucket" {
   project_label      = "cgep-lab"
   environment        = "prod"
   retention_days     = 365
-  bucket_name_suffix = "prod-data-001"
+  bucket_name_suffix = "data-001"
 }
 ```
 
@@ -486,7 +536,7 @@ Tail:
 
 ```
 attestation = {
-  "access_logging_target"    = "cgep-lab-dev-dev-data-001-logs"
+  "access_logging_target"    = "cgep-lab-dev-data-001-logs-9f2ac41b"
   "encryption_type"          = "cmek"
   "kms_rotation_period"      = "7776000s"
   "log_retention_days"       = 90
@@ -531,10 +581,17 @@ Plan it. The label comes back as `cge-p-lab`, because `merge(var.labels, local.r
 ## Verification
 
 ```bash
-gcloud storage buckets describe gs://cgep-lab-dev-dev-data-001 \
+# Read the names from Terraform rather than typing them. The bucket name now
+# carries a generated suffix, and this is the better habit regardless: a
+# verify command with a name pasted into it checks whatever that name happens
+# to point at today, which is not necessarily what you just built.
+BUCKET=$(terraform output -raw bucket_name)
+LOGS=$(terraform output -raw log_bucket_name)
+
+gcloud storage buckets describe "gs://$BUCKET" \
   --format="yaml(uniform_bucket_level_access,public_access_prevention,labels,retention_policy,logging)"
 
-gcloud storage buckets describe gs://cgep-lab-dev-dev-data-001 \
+gcloud storage buckets describe "gs://$BUCKET" \
   --format="value(default_kms_key,versioning_enabled)"
 
 gcloud kms keys describe dev-data-001-key \
@@ -542,7 +599,7 @@ gcloud kms keys describe dev-data-001-key \
   --format="value(rotationPeriod,nextRotationTime)"
 
 # AU-9: the log bucket is versioned too
-gcloud storage buckets describe gs://cgep-lab-dev-dev-data-001-logs \
+gcloud storage buckets describe "gs://$LOGS" \
   --format="value(versioning_enabled)"
 ```
 
@@ -581,7 +638,7 @@ relative to where you started and you are not left in a different directory.
 - **`Permission cloudkms.cryptoKeyEncrypterDecrypter denied`** during bucket creation. The GCS service agent needs encrypt/decrypt on the key before the bucket exists. The `depends_on` sequences it; keep it if you refactor.
 - **Access logs never appear.** GCS access logs are delivered roughly hourly, and only when there is traffic. Confirm the `cloud-storage-analytics@google.com` binding exists on the log bucket.
 - **Retention policy cannot be shortened.** It can be lengthened or removed only while `is_locked = false`. Once locked, neither.
-- **`googleapi: Error 409: ... already exists`.** GCS names are globally unique. Change `bucket_name_suffix`.
+- **`googleapi: Error 409: The requested bucket name is not available`.** GCS names are global, so this used to be routine. The module now generates a random suffix, so a 409 means you pinned `bucket_suffix` to a value someone else holds. Unset it and let the module choose.
 - **`reauth related error (invalid_rapt)`.** Run `gcloud auth application-default login` again. ADC tokens expire and Terraform will not refresh them.
 
 ## Cleanup
@@ -605,7 +662,7 @@ Three things that will surprise you:
 
 ## Revision history
 
-**These notes**
+**v2** (current)
 
 - Added an access-log bucket, with versioning and a lifecycle rule, adding AU-3 and AU-9. The module previously logged nowhere.
 - `lock_retention_policy` exposed as an input rather than hardcoded, so an irreversible choice appears in the consumer's code.
@@ -613,6 +670,6 @@ Three things that will surprise you:
 - The attestation now records `transit_encryption` as inherited from the platform, rather than leaving SC-8 unstated.
 - Added a second negative test showing that a consumer cannot suppress a required label.
 
-**The official labs**
+**v1**
 
 Initial release: single bucket, no access logging, `is_locked` hardcoded.

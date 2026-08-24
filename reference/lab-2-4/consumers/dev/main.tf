@@ -26,7 +26,7 @@ module "data_bucket" {
   project_label      = "cgep-lab"
   environment        = "dev"
   retention_days     = 30
-  bucket_name_suffix = "dev-data-001"
+  bucket_name_suffix = "data-001"
 }
 
 output "attestation" {
