@@ -49,9 +49,14 @@ output "compliance_attestation" {
     retention_period_days   = one([for r in google_storage_bucket.bucket.retention_policy : r.retention_period / 86400])
     retention_policy_locked = one([for r in google_storage_bucket.bucket.retention_policy : r.is_locked])
 
+    # condition and action are SETS, not lists, so [0] is a type error that
+    # terraform validate accepts and terraform plan rejects. Lab 2.3's own
+    # note on this applies verbatim: one() raises where tolist(...)[0] would
+    # silently return an arbitrary element.
     log_retention_days = one([
-      for r in google_storage_bucket.log.lifecycle_rule : r.condition[0].age
-      if r.action[0].type == "Delete"
+      for r in google_storage_bucket.log.lifecycle_rule :
+      one(r.condition).age
+      if one(r.action).type == "Delete"
     ])
 
     required_labels_present = alltrue([
