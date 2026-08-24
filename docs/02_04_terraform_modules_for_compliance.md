@@ -42,6 +42,19 @@ Lab 6.1 encodes this. Keep it in mind while you write the module.
 - `gcloud services enable cloudkms.googleapis.com`.
 - Terraform `>= 1.9`. The cross-variable validation in Step 3 needs it.
 
+> **Read the Cleanup section before you apply this one.** Two settings in this
+> module create things you cannot undo on a lab timescale:
+>
+> - **A locked retention policy makes the bucket undestroyable** until every
+>   object in it ages out. Lock it with `retention_days = 365` and the bucket,
+>   and the project's tidiness, are committed for a year.
+> - **GCP KMS keys are never truly deleted.** Destroying a key version starts a
+>   30-day soft delete, and the key and keyring objects remain afterward.
+>
+> Neither is a mistake in the module. Both are the point: durability you cannot
+> quietly revoke is what makes the control worth citing. But they are decisions
+> to make deliberately at the start rather than discover at teardown.
+
 ## Estimated time & cost
 
 - Time: 60 to 75 minutes.

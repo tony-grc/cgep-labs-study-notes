@@ -31,6 +31,16 @@ It also confronts a trap that is easy to walk into: capturing raw Terraform stat
 - Terraform `>= 1.10`.
 - Optional: Cosign, for the signing preview at the end. Lab 4.4 does it properly.
 
+> **Read the Cleanup section before you apply this one.** The choice between
+> `GOVERNANCE` and `COMPLIANCE` is not reversible and not symmetric:
+> `GOVERNANCE` retention can be bypassed by a privileged caller, and
+> `COMPLIANCE` cannot be bypassed by anyone, including the account root. Choose
+> `COMPLIANCE` with a long retention and the bucket stays until every object
+> expires, whatever you or AWS support would prefer.
+>
+> The defaults here are the safe ones. Change them on purpose, not on the way
+> past.
+
 ## Estimated time & cost
 
 - Time: 45 to 60 minutes.

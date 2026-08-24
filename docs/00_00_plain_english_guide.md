@@ -924,6 +924,24 @@ aws resourcegroupstaggingapi get-resources \
 
 ---
 
+## Read the cleanup first
+
+Most instructions can be followed top to bottom. A few in this curriculum
+cannot, because they build things designed to resist deletion, and that
+resistance does not care that you were only practising.
+
+`COMPLIANCE`-mode Object Lock cannot be bypassed by anyone, including the
+account root. A locked GCS retention policy holds a bucket until every object
+ages out. KMS keys in both clouds enter a deletion window rather than
+disappearing, and keep billing throughout. A Workload Identity pool you delete
+blocks its own name for thirty days.
+
+None of that is a flaw. Storage you can quietly empty is not evidence, and a key
+you can delete in a panic is not custody. It does mean the last section of a lab
+sometimes constrains the first, so **read a lab's Cleanup section before you run
+its Apply**. Labs 2.4, 2.5 and 5.4 say so at the top, because those are the ones
+where the cost of not doing it is measured in months.
+
 ## The three habits
 
 If the details fade, keep these.

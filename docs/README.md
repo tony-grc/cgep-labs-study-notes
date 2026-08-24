@@ -141,6 +141,7 @@ This costs more than the official labs. That is the honest consequence of "produ
 
 - **Run every command inside the container**, if you set one up in Lab 0.1. That is where the toolchain and your cloud logins live. Running on your own machine means installing the ten tools and logging in a second time, which is a separate setup rather than a shortcut.
 - **`evidence/` lives at the repository root**, not inside the workspace you happen to be in. Capture blocks anchor to it with `EVIDENCE="$(git rev-parse --show-toplevel)/evidence/lab-X-Y"`, so they work from any directory.
+- **Read a lab's Cleanup section before you apply it.** Several build things that cannot be undone on a lab timescale: Object Lock retention in `COMPLIANCE` mode, a locked GCS retention policy, KMS keys in either cloud, a federation pool's 30-day soft delete. Labs 2.4, 2.5 and 5.4 carry a callout naming theirs. Reading two paragraphs ahead is cheaper than waiting a year for a bucket to become deletable.
 - Every lab states cost and time before the first command.
 - Every control citation appears as a comment at the exact line that enforces it.
 - Every lab ends with cleanup that actually works, verified against versioned and Object-Locked buckets.

@@ -35,6 +35,21 @@ Same inherited-control note as Lab 2.4. On AWS you write a bucket policy to get 
 
 The lab uses project scope so it works in any environment. If your project sits in an Organization and you want org or folder scope, the same resources take a different `parent`.
 
+> **Read the Cleanup section before you apply this one.** Three things here do
+> not undo the way you would expect:
+>
+> - **Workload Identity Federation pools enter a 30-day soft delete.** You
+>   cannot recreate a pool with the same ID until it expires, unless you
+>   undelete and then purge it.
+> - **Disabling an Org Policy does not retroactively un-enforce it.** Buckets
+>   created under it keep the shape it required.
+> - **Removing an audit config is not retroactive either.** Logs already
+>   ingested keep billing until their retention expires.
+>
+> None of that is a lab artifact. It is what "enforced at the platform" costs,
+> and knowing it before you apply is the difference between a decision and a
+> surprise.
+
 ## Estimated time & cost
 
 - 90 minutes, mostly waiting for Org Policy propagation (5 to 10 minutes per change).
