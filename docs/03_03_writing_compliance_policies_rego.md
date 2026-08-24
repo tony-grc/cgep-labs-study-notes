@@ -27,7 +27,7 @@ Every deny message carries the resource address **and** the control ID. The deve
 
 - Run these from inside the devcontainer if you set one up in Lab 0.1: that is where the toolchain and your cloud logins live. `source cgep.env` first, in every new shell.
 - OPA `>= 1.0` (tested on 1.19.1). Policies declare `import rego.v1`, so they also run on 0.x `>= 0.60`.
-- Terraform `>= 1.9` and the `google` provider authenticated (`gcloud auth application-default login`).
+- Terraform `>= 1.9`. The `google` provider does **not** need real credentials for this lab; see the note at Step 2.
 - Lab 2.4 completed. Its module is what the fixture consumes, and its `compliance_attestation` is what the AU-9 rule leans on.
 
 ## Estimated time & cost
@@ -209,6 +209,26 @@ terraform show -json tfplan > plan.json
 ```
 
 You never apply. The policies operate on `plan.json`.
+
+> **This lab needs no Google account.** The provider refuses to start without
+> credentials, which reads like a hard prerequisite and is not one. The fixture
+> declares no data sources and is never applied, so nothing here ever calls the
+> API. A placeholder token satisfies the provider and the plan is produced
+> entirely offline:
+>
+> ```bash
+> export GOOGLE_OAUTH_ACCESS_TOKEN=offline-fixture
+> export TF_VAR_gcp_project=cgep-lab-fixture
+> terraform plan -out=tfplan
+> ```
+>
+> Use your real project if you have one; the plan is identical either way,
+> because the resource names in `plan.json` are what the policies read.
+>
+> **Do not carry this trick into a lab that applies anything.** It works here
+> for two specific reasons, no data sources and no apply, and a fake token in
+> Lab 2.4 buys you a confusing authentication failure partway through creating
+> real infrastructure.
 
 ### Step 3 SC-28
 
