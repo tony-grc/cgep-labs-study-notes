@@ -565,17 +565,42 @@ That output is your SC-12 / SC-13 / SC-28 / AC-3 / AU-3 / AU-9 / AU-11 / CM-6 at
 Copy `consumers/dev` to `consumers/negative-test`, set `environment = "prod"` and leave `retention_days = 30`:
 
 ```
+Plan: 6 to add, 0 to change, 0 to destroy.
+
 Error: Invalid value for variable
+
+  on main.tf line 29, in module "data_bucket":
+  29:   retention_days     = 30
 
   var.environment is "prod"
   var.retention_days is 30
 
 retention_days must be >= 365 when environment == "prod".
 
-This was checked by the validation rule at variables.tf:...
+This was checked by the validation rule at
+../../modules/compliant-gcs-bucket/variables.tf:54,3-13.
 ```
 
 This is the lesson. The compliance check ran at `terraform plan`, before any resource existed, with a message specific enough that the developer fixes it without filing a ticket. Preventive beats detective, and it is cheaper.
+
+> **Two things about that output that surprise people.**
+>
+> **Terraform renders the whole plan first, then fails.** You will see six
+> resources listed under `+ create` and a line reading `Plan: 6 to add` above
+> the error. Nothing was created. A plan is a proposal, and this one was
+> refused before anything acted on it, so the `negative-test.txt` in your
+> evidence folder is a plan that never ran. Say that in your write-up, because
+> a reviewer skimming for `6 to add` will otherwise read it as a near miss.
+>
+> **`terraform validate` says `Success!` on this exact configuration.** Both
+> values are literals sitting in `main.tf`, so it looks like something a static
+> check should catch, and it is not: `validate` checks syntax, types and
+> references, never values. Variable validation rules are evaluated during
+> `plan`. The practical consequence is worth carrying into Lab 4.3: **a
+> pipeline whose only Terraform gate is `terraform validate` passes this
+> configuration.** The pipeline you build there runs `validate` and then
+> `plan` under `set -euo pipefail`, which is why it catches what validate
+> alone would wave through.
 
 Run a second negative test: try to suppress a required label.
 
