@@ -204,9 +204,12 @@ resource "google_compute_firewall" "open_ssh" {
 ```bash
 cd terraform
 terraform init
-terraform plan -out=tfplan
-terraform show -json tfplan > plan.json
+terraform plan -out=tfplan && terraform show -json tfplan > plan.json
 ```
+
+The `&&` is load bearing. Written as two separate lines, a failed plan still
+runs the redirect, and `plan.json` is created as an empty file. Everything
+downstream then reads it without complaint.
 
 You never apply. The policies operate on `plan.json`.
 
@@ -680,11 +683,117 @@ Each broken resource flagged exactly once by the right control. The good bucket 
 
 ## Verification
 
-- `opa test -v policies/` passes, at least two tests per policy.
-- `scripts/mutation-test.sh` reports `killed` for every policy and exits 0.
-- Each `deny` set against `plan.json` contains exactly the expected violations.
-- `evidence/lab-3-3/policy-catalog.json` lists all five controls.
-- After fixing the fixture, every deny set is empty.
+**An empty deny set is what a broken run looks like too.** That is the trap in
+this lab, and it is worse than the usual kind because emptiness is also the
+goal: once you fix the fixture, every namespace is supposed to return `[]`.
+Run `opa eval` against a `plan.json` that is zero bytes, because `terraform
+plan` failed a few commands earlier, and you get exactly the same five empty
+sets and exit status 0. Nothing anywhere reports a problem.
+
+So this script asserts the **input** before it believes anything the policies
+say about it: the file exists, parses, and describes resources. Only then does
+it check the deny sets, against the count each control should produce.
+
+```bash
+bash scripts/verify.sh
+```
+
+Expect one denial each from SC-28, CM-6, AU-3 and AU-9, and two from AC-3,
+which owns both the public bucket and the open SSH rule. After you fix the
+fixture, ask for the opposite and the input guard still applies:
+
+```bash
+bash scripts/verify.sh --expect-clean
+```
+
+That difference is the point. `--expect-clean` passing means the fixture is
+compliant **and** there was a real plan to judge it against. Reading `[]` off
+the screen proves only the first, and only if you already know the second.
+
+```bash
+#!/usr/bin/env bash
+# scripts/verify.sh
+# Verification for Lab 3.3.
+#
+# The failure this exists to prevent: `opa eval` against a zero byte plan.json
+# returns [] for every namespace and exits 0. An empty deny set is also what
+# success looks like once you have fixed the fixture, so a pipeline that broke
+# three commands earlier is indistinguishable from a clean run. This asserts
+# the INPUT is real before it believes anything the policies say about it.
+#
+#   bash scripts/verify.sh                 # the shipped fixture, expect denials
+#   bash scripts/verify.sh --expect-clean  # after you fix it, expect none
+set -uo pipefail
+
+EXPECT_CLEAN=0
+[[ "${1:-}" == "--expect-clean" ]] && EXPECT_CLEAN=1
+
+FAILED=0
+pass() { printf '  PASS  %-8s %s\n' "$1" "$2"; }
+fail() { printf '  FAIL  %-8s %s\n' "$1" "$2" >&2; FAILED=1; }
+
+PLAN=terraform/plan.json
+
+echo "=== the input ==="
+
+if [[ ! -s "$PLAN" ]]; then
+  fail INPUT "$PLAN is missing or empty. terraform plan probably failed, and every deny set below would read [] regardless."
+  echo; echo "NOT VERIFIED: no plan to evaluate." >&2
+  exit 1
+fi
+pass INPUT "$PLAN is $(wc -c < "$PLAN") bytes"
+
+if ! jq -e . "$PLAN" >/dev/null 2>&1; then
+  fail INPUT "$PLAN is not valid JSON."
+  echo; echo "NOT VERIFIED: no plan to evaluate." >&2
+  exit 1
+fi
+
+# A plan that parses can still describe nothing. Count what the policies read.
+RESOURCES=$(jq '[.planned_values.root_module.resources[]?] | length' "$PLAN" 2>/dev/null)
+if [[ "${RESOURCES:-0}" -gt 0 ]]; then
+  pass INPUT "plan describes $RESOURCES resources"
+else
+  fail INPUT "plan parses but describes no resources, so every policy has nothing to judge."
+  echo; echo "NOT VERIFIED: nothing to evaluate." >&2
+  exit 1
+fi
+
+echo "=== deny sets ==="
+
+# Expected counts for the fixture as shipped. Each broken resource is flagged
+# exactly once by the control that owns it, and AC-3 owns two of them: the
+# public bucket and the open SSH rule.
+declare -A EXPECTED=( [sc28]=1 [ac3]=2 [cm6]=1 [au3]=1 [au9]=1 )
+
+for ns in sc28 ac3 cm6 au3 au9; do
+  count=$(opa eval -d policies -i "$PLAN" "data.compliance.$ns.deny" --format=json 2>/dev/null \
+          | jq '[.result[]?.expressions[]?.value[]?] | length')
+  count=${count:-0}
+  if [[ $EXPECT_CLEAN -eq 1 ]]; then
+    want=0
+  else
+    want=${EXPECTED[$ns]}
+  fi
+  if [[ "$count" == "$want" ]]; then
+    pass "$ns" "$count denial(s)"
+  else
+    fail "$ns" "expected $want denial(s), got $count"
+  fi
+done
+
+echo
+if [[ $FAILED -eq 0 ]]; then
+  if [[ $EXPECT_CLEAN -eq 1 ]]; then
+    echo "VERIFIED: the fixture is clean, and the plan it was judged against was real."
+  else
+    echo "VERIFIED: every control fired exactly where expected."
+  fi
+else
+  echo "NOT VERIFIED: the deny sets do not match. Do not capture evidence yet." >&2
+fi
+exit $FAILED
+```
 
 ### Capture the evidence the checklist asks for
 
@@ -694,6 +803,7 @@ EVIDENCE="$(git rev-parse --show-toplevel)/evidence/lab-3-3"
 mkdir -p "$EVIDENCE"
 opa test policies/ --format=json > "$EVIDENCE/opa-test-results.json"
 bash scripts/mutation-test.sh 2>&1 | tee "$EVIDENCE/mutation-results.txt"
+bash scripts/verify.sh 2>&1 | tee "$EVIDENCE/deny-sets.txt"
 ```
 
 The mutation output matters more than the test results. Passing tests show the
@@ -707,6 +817,7 @@ noticed.
 - [ ] `scripts/mutation-test.sh` committed and executable.
 - [ ] `evidence/lab-3-3/opa-test-results.json` from `opa test --format=json policies/`.
 - [ ] `evidence/lab-3-3/mutation-results.txt`.
+- [ ] `evidence/lab-3-3/deny-sets.txt`, showing each control firing where expected.
 - [ ] `evidence/lab-3-3/policy-catalog.json`.
 - [ ] `policies/README.md` listing each policy, control, severity, and remediation.
 
