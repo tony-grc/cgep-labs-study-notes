@@ -466,30 +466,113 @@ your account.
 
 ## Verification
 
-```bash
-BUCKET=$(cd terraform/bootstrap && terraform output -raw state_bucket)
+**Every check below asserts a value**, which the describe calls this section
+used to print could not. `aws s3api get-bucket-encryption` exits 0 whether the
+answer is `aws:kms` or `AES256`, and `get-bucket-versioning` prints nothing and
+still exits 0 on a bucket where versioning was never enabled. The state backend is the one bucket every later lab writes to, so a control that quietly is not there costs you more here than anywhere else.
 
-# SC-28: KMS encryption with your CMK
-aws s3api get-bucket-encryption --bucket "$BUCKET"
-
-# CP-9: versioning
-aws s3api get-bucket-versioning --bucket "$BUCKET"
-
-# AC-3: all four flags true
-aws s3api get-public-access-block --bucket "$BUCKET"
-
-# SC-8: the TLS deny is present
-aws s3api get-bucket-policy --bucket "$BUCKET" \
-  --query Policy --output text | jq '.Statement[] | select(.Sid=="DenyInsecureTransport")'
-```
-
-Then prove the TLS control actually works, rather than merely existing:
+Pass the workspace, so it does not matter where you run it from:
 
 ```bash
-aws s3api list-objects-v2 --bucket "$BUCKET" --endpoint-url "http://s3.us-east-1.amazonaws.com"
+bash scripts/verify.sh terraform/bootstrap
 ```
 
-Expected: `AccessDenied`. A control you have not watched deny something is a control you are guessing about.
+Every line names a control and either passes or fails with what it expected
+and what the account actually returned. The run ends in `VERIFIED` or `NOT
+VERIFIED` and sets the exit status accordingly.
+
+```bash
+#!/usr/bin/env bash
+# scripts/verify.sh
+# Verification for Lab 2.2. Every check asserts a value and exits non-zero if
+# the account disagrees.
+#
+# Run it from the workspace that owns the outputs.
+#
+# What this replaces: `aws s3api get-bucket-encryption` printed a
+# configuration and exited 0 whether the algorithm was aws:kms or AES256, and
+# `get-bucket-versioning` printed nothing at all and still exited 0 when
+# versioning had never been turned on. Both looked like verification.
+set -uo pipefail
+
+# Point this at the workspace whose `terraform output` describes the resources
+# you want checked, so it does not matter where you run it from. Guessing the
+# working directory is how a verification script cheerfully checks the wrong
+# account and passes.
+WORKSPACE="${1:-.}"
+cd "$WORKSPACE" 2>/dev/null || { echo "no such workspace: $WORKSPACE" >&2; exit 1; }
+
+FAILED=0
+
+pass() { printf '  PASS  %-8s %s\n' "$1" "$2"; }
+fail() { printf '  FAIL  %-8s %s\n' "$1" "$2" >&2; FAILED=1; }
+
+check() { # check CONTROL LABEL EXPECTED ACTUAL
+  if [[ "$3" == "$4" ]]; then
+    pass "$1" "$2 is $4"
+  else
+    fail "$1" "$2: expected '$3', got '${4:-(nothing)}'"
+  fi
+}
+
+BUCKET=$(terraform output -raw state_bucket)
+KMS=$(terraform output -raw state_kms_key_arn)
+
+echo "=== configuration ==="
+
+check SC-28 "state encryption" "aws:kms" \
+  "$(aws s3api get-bucket-encryption --bucket "$BUCKET" \
+       --query 'ServerSideEncryptionConfiguration.Rules[0].ApplyServerSideEncryptionByDefault.SSEAlgorithm' \
+       --output text 2>/dev/null)"
+
+# The key has to be yours, not the AWS managed aws/s3 key, or "encrypted with
+# KMS" is true and meaningless.
+check SC-28 "state CMK" "$KMS" \
+  "$(aws s3api get-bucket-encryption --bucket "$BUCKET" \
+       --query 'ServerSideEncryptionConfiguration.Rules[0].ApplyServerSideEncryptionByDefault.KMSMasterKeyID' \
+       --output text 2>/dev/null)"
+
+check CP-9 "versioning" "Enabled" \
+  "$(aws s3api get-bucket-versioning --bucket "$BUCKET" \
+       --query 'Status' --output text 2>/dev/null)"
+
+PAB=$(aws s3api get-public-access-block --bucket "$BUCKET" --output json 2>/dev/null)
+[[ -z "$PAB" ]] && PAB='{}'
+for flag in BlockPublicAcls IgnorePublicAcls BlockPublicPolicy RestrictPublicBuckets; do
+  check AC-3 "$flag" "true" \
+    "$(jq -r ".PublicAccessBlockConfiguration.${flag} // empty" <<<"$PAB")"
+done
+
+# SC-8. The statement has to exist AND deny, so both are asserted rather than
+# eyeballed out of a jq dump.
+POLICY=$(aws s3api get-bucket-policy --bucket "$BUCKET" --query Policy --output text 2>/dev/null)
+[[ -z "$POLICY" ]] && POLICY='{"Statement":[]}'
+check SC-8 "TLS deny effect" "Deny" \
+  "$(jq -r '[.Statement[] | select(.Sid=="DenyInsecureTransport")][0].Effect // empty' <<<"$POLICY")"
+check SC-8 "TLS deny condition" "false" \
+  "$(jq -r '[.Statement[] | select(.Sid=="DenyInsecureTransport")][0].Condition.Bool."aws:SecureTransport" // empty' <<<"$POLICY")"
+
+echo "=== enforcement ==="
+
+# A control you have not watched deny something is a control you are guessing
+# about. This is the statement above, actually refusing.
+OUT=$(aws s3api list-objects-v2 --bucket "$BUCKET" \
+  --endpoint-url "http://s3.us-east-1.amazonaws.com" 2>&1)
+RC=$?
+if [[ $RC -ne 0 && "$OUT" == *AccessDenied* ]]; then
+  pass "SC-8" "plain HTTP was refused"
+else
+  fail "SC-8" "plain HTTP was NOT refused (exit $RC)"
+fi
+
+echo
+if [[ $FAILED -eq 0 ]]; then
+  echo "VERIFIED: every control asserted above holds in the account."
+else
+  echo "NOT VERIFIED: at least one control does not hold. Do not capture evidence yet." >&2
+fi
+exit $FAILED
+```
 
 ### Capture the evidence the checklist asks for
 
@@ -497,23 +580,21 @@ Expected: `AccessDenied`. A control you have not watched deny something is a con
 # evidence/ lives at the repository root, not in the workspace you are in
 EVIDENCE="$(git rev-parse --show-toplevel)/evidence/lab-2-2"
 mkdir -p "$EVIDENCE"
-{
-  aws s3api get-bucket-encryption      --bucket "$BUCKET"
-  aws s3api get-bucket-versioning      --bucket "$BUCKET"
-  aws s3api get-public-access-block    --bucket "$BUCKET"
-} | tee "$EVIDENCE/backend-verification.json"
+
+bash scripts/verify.sh terraform/bootstrap 2>&1 \
+  | tee "$EVIDENCE/backend-verification.txt"
 ```
 
-It is not strictly one JSON document, and that is fine: the checklist wants the
-verification output, not a schema. If you would rather it parse, wrap the three
-with `jq -s '{encryption:.[0], versioning:.[1], public_access:.[2]}'`.
+Capture it after it passes. What goes in the file is a list of controls with a
+verdict against each, which is a stronger artifact than three raw API dumps a
+reader has to interpret for themselves.
 
 ## Portfolio submission checklist
 
 - [ ] `terraform/bootstrap/{main.tf,variables.tf,outputs.tf,README.md}` committed.
 - [ ] `terraform/bootstrap/terraform.tfstate` committed, with the README explaining why that is safe here.
 - [ ] At least one lab workspace has a `backend "s3"` block with its own `key`.
-- [ ] `evidence/lab-2-2/backend-verification.json`, the output of the four verification commands.
+- [ ] `evidence/lab-2-2/backend-verification.txt`, the output of the four verification commands.
 - [ ] README notes the region, because the backend and every workspace must agree on it.
 
 ## Troubleshooting

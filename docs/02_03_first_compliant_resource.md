@@ -742,79 +742,175 @@ Open `state.json` and find each control rather than taking the table's word for 
 
 ## Verification
 
+**Every check below asserts a value.** That is the whole difference from the
+describe calls this section used to print. `aws s3api get-bucket-encryption`
+exits 0 whether the answer is `aws:kms` or `AES256`, and since S3 turned on
+default encryption for every bucket it essentially never fails at all.
+`get-bucket-versioning` on a bucket where versioning was never enabled prints
+nothing and also exits 0. A verification step that cannot fail is the same
+mistake as a control that cannot fail, one page later in your own repository.
+
 ```bash
+bash scripts/verify.sh terraform/primitives/compliant-s3
+```
+
+You get a `PASS` or `FAIL` line naming the control, and a final `VERIFIED` or
+`NOT VERIFIED` that sets the exit status. Read the failures rather than the
+passes: a `FAIL` line tells you the control, what it expected, and what the
+account actually returned.
+
+The last three checks are the ones an assessor cares about, because they make
+the controls deny something rather than merely describe themselves. Plain HTTP
+is refused, an upload with no encryption header is refused, and the same
+upload naming the key succeeds. **The success matters as much as the
+denials**: a policy that refuses everything is broken, not strict.
+
+```bash
+#!/usr/bin/env bash
+# scripts/verify.sh
+# Verification for Lab 2.3. Every check asserts a value and exits non-zero if
+# the cloud disagrees.
+#
+# The point is that this script CAN fail. The describe calls it replaces could
+# not. `aws s3api get-bucket-encryption` exits 0 whether the answer is aws:kms
+# or AES256, and since S3 turned on default encryption for every bucket it
+# essentially never fails at all. `get-bucket-versioning` on a bucket where
+# versioning was never enabled prints nothing and also exits 0. Reading that
+# output and nodding is not verification, it just feels like it.
+set -uo pipefail
+
+# Point this at the workspace whose `terraform output` describes the resources
+# you want checked, so it does not matter where you run it from. Guessing the
+# working directory is how a verification script cheerfully checks the wrong
+# account and passes.
+WORKSPACE="${1:-.}"
+cd "$WORKSPACE" 2>/dev/null || { echo "no such workspace: $WORKSPACE" >&2; exit 1; }
+
+FAILED=0
+
+pass() { printf '  PASS  %-8s %s\n' "$1" "$2"; }
+fail() { printf '  FAIL  %-8s %s\n' "$1" "$2" >&2; FAILED=1; }
+
+check() { # check CONTROL LABEL EXPECTED ACTUAL
+  if [[ "$3" == "$4" ]]; then
+    pass "$1" "$2 is $4"
+  else
+    fail "$1" "$2: expected '$3', got '${4:-(nothing)}'"
+  fi
+}
+
+refuse() { # refuse CONTROL LABEL COMMAND...
+  local control=$1 label=$2 out rc
+  shift 2
+  out=$("$@" 2>&1)
+  rc=$?
+  if [[ $rc -ne 0 && "$out" == *AccessDenied* ]]; then
+    pass "$control" "$label was refused"
+  else
+    fail "$control" "$label was NOT refused (exit $rc). A control you have not watched deny is a guess."
+  fi
+}
+
 BUCKET=$(terraform output -raw bucket_name)
 LOGS=$(terraform output -raw log_bucket_name)
 KMS=$(terraform output -raw kms_key_arn)
 
-# SC-28: KMS, not AES256
-aws s3api get-bucket-encryption --bucket "$BUCKET"
+echo "=== configuration ==="
 
-# SC-12/SC-13: rotation on
-aws kms get-key-rotation-status --key-id "$KMS"
+# SC-28. The algorithm, not merely the presence of a configuration.
+check SC-28 "bucket encryption" "aws:kms" \
+  "$(aws s3api get-bucket-encryption --bucket "$BUCKET" \
+       --query 'ServerSideEncryptionConfiguration.Rules[0].ApplyServerSideEncryptionByDefault.SSEAlgorithm' \
+       --output text 2>/dev/null)"
 
-# CP-9 and AU-9: versioning on BOTH buckets
-aws s3api get-bucket-versioning --bucket "$BUCKET"
-aws s3api get-bucket-versioning --bucket "$LOGS"
+# SC-12 / SC-13. AWS renders booleans as True.
+check SC-12 "key rotation" "True" \
+  "$(aws kms get-key-rotation-status --key-id "$KMS" \
+       --query 'KeyRotationEnabled' --output text 2>/dev/null)"
 
-# AC-3
-aws s3api get-public-access-block --bucket "$BUCKET"
+# CP-9 and AU-9. An unversioned bucket has no Status field at all, so this
+# reads as empty and fails, where the bare describe printed nothing and passed.
+check CP-9 "primary versioning" "Enabled" \
+  "$(aws s3api get-bucket-versioning --bucket "$BUCKET" \
+       --query 'Status' --output text 2>/dev/null)"
+check AU-9 "log versioning" "Enabled" \
+  "$(aws s3api get-bucket-versioning --bucket "$LOGS" \
+       --query 'Status' --output text 2>/dev/null)"
 
-# AC-6: ACLs disabled
-aws s3api get-bucket-ownership-controls --bucket "$BUCKET"
+# AC-3. All four flags, named individually so a failure says which one.
+PAB=$(aws s3api get-public-access-block --bucket "$BUCKET" --output json 2>/dev/null)
+# A bucket with no public access block at all fails the call, and an empty
+# string is not JSON, so jq would error instead of reporting the missing flag.
+[[ -z "$PAB" ]] && PAB='{}'
+for flag in BlockPublicAcls IgnorePublicAcls BlockPublicPolicy RestrictPublicBuckets; do
+  check AC-3 "$flag" "true" \
+    "$(jq -r ".PublicAccessBlockConfiguration.${flag} // empty" <<<"$PAB")"
+done
 
-# AU-11
-aws s3api get-bucket-lifecycle-configuration --bucket "$LOGS"
+# AC-6.
+check AC-6 "object ownership" "BucketOwnerEnforced" \
+  "$(aws s3api get-bucket-ownership-controls --bucket "$BUCKET" \
+       --query 'OwnershipControls.Rules[0].ObjectOwnership' --output text 2>/dev/null)"
 
-# AU-3
-aws s3api get-bucket-logging --bucket "$BUCKET"
-```
+# AU-3. The target has to be the log bucket, not merely some bucket.
+check AU-3 "log target" "$LOGS" \
+  "$(aws s3api get-bucket-logging --bucket "$BUCKET" \
+       --query 'LoggingEnabled.TargetBucket' --output text 2>/dev/null)"
 
-Then make the controls actually deny something. A control you have not watched fire is a control you are guessing about:
+# AU-11. Compared against the module's own attestation, so this catches drift
+# between what the code claims and what the account actually holds.
+EXPECTED_DAYS=$(terraform output -json compliance_attestation | jq -r '.log_retention_days')
+check AU-11 "log expiry days" "$EXPECTED_DAYS" \
+  "$(aws s3api get-bucket-lifecycle-configuration --bucket "$LOGS" \
+       --query 'Rules[?ID==`expire-access-logs`].Expiration.Days | [0]' \
+       --output text 2>/dev/null)"
 
-```bash
-# SC-8: plain HTTP must be refused
-aws s3api list-objects-v2 --bucket "$BUCKET" \
+echo "=== enforcement ==="
+
+# SC-8. Configuration says TLS is required; this is the bucket saying no.
+refuse SC-8 "plain HTTP" \
+  aws s3api list-objects-v2 --bucket "$BUCKET" \
   --endpoint-url "http://s3.us-east-1.amazonaws.com"
-# expect: AccessDenied
 
-# SC-28: an upload with no encryption header must be refused
-echo test > /tmp/t.txt
-aws s3 cp /tmp/t.txt "s3://$BUCKET/t.txt"
-# expect: AccessDenied
+echo test > /tmp/cgep-verify.txt
 
-# ...and the same upload, done correctly, must succeed
-aws s3 cp /tmp/t.txt "s3://$BUCKET/t.txt" \
-  --sse aws:kms --sse-kms-key-id "$KMS"
-# expect: upload succeeds
+# SC-28. An upload with no encryption header.
+refuse SC-28 "unencrypted upload" \
+  aws s3 cp /tmp/cgep-verify.txt "s3://$BUCKET/verify.txt"
+
+# The same upload done correctly has to succeed, or the policy is simply
+# broken rather than strict.
+if aws s3 cp /tmp/cgep-verify.txt "s3://$BUCKET/verify.txt" \
+     --sse aws:kms --sse-kms-key-id "$KMS" >/dev/null 2>&1; then
+  pass "SC-28" "correctly encrypted upload succeeded"
+else
+  fail "SC-28" "correctly encrypted upload was refused. The policy denies everything, which is not the control."
+fi
+rm -f /tmp/cgep-verify.txt
+
+echo
+if [[ $FAILED -eq 0 ]]; then
+  echo "VERIFIED: every control asserted above holds in the account."
+else
+  echo "NOT VERIFIED: at least one control does not hold. Do not capture evidence yet." >&2
+fi
+exit $FAILED
 ```
-
-Three denials and one success. That sequence is better evidence than any of the `get-*` calls, because it demonstrates enforcement rather than configuration.
 
 ### Capture the evidence the checklist asks for
-
-The three denials and the success are the strongest artifact this lab produces,
-and nothing has written them down yet:
 
 ```bash
 # evidence/ lives at the repository root, not in the workspace you are in
 EVIDENCE="$(git rev-parse --show-toplevel)/evidence/lab-2-3"
 mkdir -p "$EVIDENCE"
 
-{
-  echo "### plain HTTP, expect AccessDenied (SC-8)"
-  aws s3api list-objects-v2 --bucket "$BUCKET" \
-    --endpoint-url "http://s3.us-east-1.amazonaws.com" 2>&1
-
-  echo "### upload with no encryption header, expect AccessDenied (SC-28)"
-  echo test > /tmp/t.txt
-  aws s3 cp /tmp/t.txt "s3://$BUCKET/t.txt" 2>&1
-
-  echo "### same upload naming the key, expect success"
-  aws s3 cp /tmp/t.txt "s3://$BUCKET/t.txt" \
-    --sse aws:kms --sse-kms-key-id "$KMS" 2>&1
-} | tee "$EVIDENCE/enforcement-test.txt"
+bash scripts/verify.sh terraform/primitives/compliant-s3 2>&1 \
+  | tee "$EVIDENCE/enforcement-test.txt"
 ```
+
+Capture it after it passes. A transcript full of `FAIL` lines is a record of an
+environment that does not hold its controls, which is worth having while you
+fix it and is not what the checklist is asking for.
 
 ## Portfolio submission checklist
 

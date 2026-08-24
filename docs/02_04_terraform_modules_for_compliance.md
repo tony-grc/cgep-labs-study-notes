@@ -535,7 +535,7 @@ Plan prod, but do not apply it. A 365-day retention takes a year to expire.
 cd consumers/dev
 terraform init
 terraform fmt && terraform validate
-terraform plan -out=tfplan -var=gcp_project=your-gcp-project
+terraform plan -out=tfplan
 terraform apply -auto-approve tfplan
 ```
 
@@ -613,11 +613,11 @@ Plan it. The label comes back as `cge-p-lab`, because `merge(var.labels, local.r
 ## Verification
 
 > **gcloud silently drops field names it does not recognize.** The projection
-> in `--format="yaml(...)"` is a filter, not a query: ask for a field that does
-> not exist and gcloud prints the fields it did understand and says nothing at
-> all about the one it did not. An earlier draft of this section asked for
-> `logging`, whose real name is `logging_config`, and the output simply had no
-> logging section in it.
+> in `--format` is a filter, not a query: ask for a field that does not exist
+> and gcloud prints the fields it did understand and says nothing at all about
+> the one it did not. An earlier draft of this section asked for `logging`,
+> whose real name is `logging_config`, and the output simply had no logging
+> section in it.
 >
 > Read what that means for evidence. **A control that is genuinely missing and
 > a field name you got wrong produce identical output.** If you are verifying a
@@ -627,27 +627,143 @@ Plan it. The label comes back as `cge-p-lab`, because `merge(var.labels, local.r
 > and `default_kms_key` even though the REST API calls them `logging` and
 > `encryption.defaultKmsKeyName`.
 
+That trap is exactly why this section asserts rather than prints. Run it from
+`consumers/dev`:
+
 ```bash
-# Read the names from Terraform rather than typing them. The bucket name now
-# carries a generated suffix, and this is the better habit regardless: a
-# verify command with a name pasted into it checks whatever that name happens
-# to point at today, which is not necessarily what you just built.
+bash scripts/verify.sh consumers/dev
+```
+
+Every line names a control and either passes or fails with what it expected
+and what the project actually returned. The run ends in `VERIFIED` or `NOT
+VERIFIED` and sets the exit status accordingly.
+
+**On the one enforcement check.** It is a read, not a write, and that is
+deliberate. The obvious way to prove public access prevention works is to try
+adding `allUsers` as a viewer and watch it be refused. If the control were
+missing, that test would succeed and leave your bucket public. A check that
+damages the thing it is checking when it fails is not worth running, so this
+one asks for the bucket listing anonymously and requires a 401 or 403.
+
+The same reasoning rules out watching the retention policy deny a delete.
+Doing that means putting an object in the bucket, and a 30 day retention floor
+then prevents you from deleting it, which prevents you from destroying the
+bucket, for 30 days. The configuration assertion is the honest trade here, and
+the cleanup section explains the rest.
+
+```bash
+#!/usr/bin/env bash
+# scripts/verify.sh
+# Verification for Lab 2.4. Every check asserts a value and exits non-zero if
+# the project disagrees.
+#
+# Run it from consumers/dev, where the outputs live.
+#
+# One trap this replaces: gcloud's --format projection is a filter, not a
+# query. Ask for a field it does not recognize and it prints the fields it did
+# understand and says nothing about the one it did not, exit code 0. An earlier
+# draft asked for `logging` instead of `logging_config` and simply had no
+# logging section in its output. A control that is genuinely missing and a
+# field name you typed wrong look identical.
+set -uo pipefail
+
+# Point this at the workspace whose `terraform output` describes the resources
+# you want checked, so it does not matter where you run it from. Guessing the
+# working directory is how a verification script cheerfully checks the wrong
+# account and passes.
+WORKSPACE="${1:-.}"
+cd "$WORKSPACE" 2>/dev/null || { echo "no such workspace: $WORKSPACE" >&2; exit 1; }
+
+FAILED=0
+
+pass() { printf '  PASS  %-8s %s\n' "$1" "$2"; }
+fail() { printf '  FAIL  %-8s %s\n' "$1" "$2" >&2; FAILED=1; }
+
+check() { # check CONTROL LABEL EXPECTED ACTUAL
+  if [[ "$3" == "$4" ]]; then
+    pass "$1" "$2 is $4"
+  else
+    fail "$1" "$2: expected '$3', got '${4:-(nothing)}'"
+  fi
+}
+
 BUCKET=$(terraform output -raw bucket_name)
 LOGS=$(terraform output -raw log_bucket_name)
+ATT=$(terraform output -json compliance_attestation)
+KMS_ID=$(jq -r '.kms_key_id' <<<"$ATT")
 
-gcloud storage buckets describe "gs://$BUCKET" \
-  --format="yaml(uniform_bucket_level_access,public_access_prevention,labels,retention_policy,logging_config)"
+# projects/P/locations/L/keyRings/R/cryptoKeys/K
+KEY_PROJECT=$(awk -F/ '{print $2}' <<<"$KMS_ID")
+KEY_LOCATION=$(awk -F/ '{print $4}' <<<"$KMS_ID")
+KEY_RING=$(awk -F/ '{print $6}' <<<"$KMS_ID")
+KEY_NAME=$(awk -F/ '{print $8}' <<<"$KMS_ID")
 
-gcloud storage buckets describe "gs://$BUCKET" \
-  --format="value(default_kms_key,versioning_enabled)"
+bucket_field() { # bucket_field BUCKET FIELD
+  gcloud storage buckets describe "gs://$1" --format="value($2)" 2>/dev/null
+}
 
-gcloud kms keys describe dev-data-001-key \
-  --keyring=dev-data-001-ring --location=us-central1 \
-  --format="value(rotationPeriod,nextRotationTime)"
+# Booleans are read as JSON rather than through value(), which renders them
+# with Python's capitalisation. Asserting against "True" when the tool happens
+# to emit "true" is a failure that teaches nothing.
+bucket_json() { # bucket_json BUCKET JQ_PATH
+  gcloud storage buckets describe "gs://$1" --format=json 2>/dev/null \
+    | jq -r "$2 // empty"
+}
 
-# AU-9: the log bucket is versioned too
-gcloud storage buckets describe "gs://$LOGS" \
-  --format="value(versioning_enabled)"
+echo "=== configuration ==="
+
+# SC-13 / SC-28. The key itself, not merely that some key is set.
+check SC-28 "default CMEK" "$KMS_ID" "$(bucket_field "$BUCKET" default_kms_key)"
+
+# SC-12. Ninety days, in seconds, because the API is not sorry about it.
+check SC-12 "key rotation" "7776000s" \
+  "$(gcloud kms keys describe "$KEY_NAME" --keyring="$KEY_RING" \
+       --location="$KEY_LOCATION" --project="$KEY_PROJECT" \
+       --format="value(rotationPeriod)" 2>/dev/null)"
+
+# CP-9 and AU-9.
+check CP-9 "data versioning" "true" "$(bucket_json "$BUCKET" .versioning_enabled)"
+check AU-9 "log versioning"  "true" "$(bucket_json "$LOGS" .versioning_enabled)"
+
+# AC-3 and AC-6.
+check AC-3 "public access prevention" "enforced" \
+  "$(bucket_field "$BUCKET" public_access_prevention)"
+check AC-6 "uniform bucket access" "true" \
+  "$(bucket_json "$BUCKET" .uniform_bucket_level_access)"
+
+# AU-3. The target has to be the log bucket, not merely some bucket. This is
+# the field that was silently absent when the name was wrong.
+check AU-3 "log target" "$LOGS" "$(bucket_field "$BUCKET" logging_config.logBucket)"
+
+# AU-11. Asserted against the module's own attestation, so a disagreement
+# between the code and the project shows up as a failure rather than as two
+# numbers nobody compared.
+check AU-11 "retention seconds" \
+  "$(( $(jq -r '.retention_period_days' <<<"$ATT") * 86400 ))" \
+  "$(bucket_field "$BUCKET" retention_policy.retentionPeriod)"
+
+echo "=== enforcement ==="
+
+# AC-3, without touching anything. An unauthenticated read of the bucket
+# listing must be refused. This is deliberately a read: the obvious GCP denial
+# test is to try adding allUsers as a viewer, and if the control were missing
+# that test would succeed and leave your bucket public. A check that damages
+# the thing it is checking when it fails is not worth running.
+CODE=$(curl -s -o /dev/null -w '%{http_code}' \
+  "https://storage.googleapis.com/storage/v1/b/${BUCKET}/o" 2>/dev/null)
+if [[ "$CODE" == "401" || "$CODE" == "403" ]]; then
+  pass "AC-3" "anonymous listing refused with HTTP $CODE"
+else
+  fail "AC-3" "anonymous listing returned HTTP ${CODE:-(no response)}, expected 401 or 403"
+fi
+
+echo
+if [[ $FAILED -eq 0 ]]; then
+  echo "VERIFIED: every control asserted above holds in the project."
+else
+  echo "NOT VERIFIED: at least one control does not hold. Do not capture evidence yet." >&2
+fi
+exit $FAILED
 ```
 
 ### Capture the evidence the checklist asks for

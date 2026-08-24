@@ -204,7 +204,7 @@ resource "google_compute_firewall" "open_ssh" {
 ```bash
 cd terraform
 terraform init
-terraform plan -out=tfplan -var=gcp_project=your-gcp-project
+terraform plan -out=tfplan
 terraform show -json tfplan > plan.json
 ```
 
