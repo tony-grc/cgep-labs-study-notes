@@ -17,7 +17,10 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-LABEL = re.compile(r"^#\s*(scripts/[a-z-]+\.sh)\s*$", re.M)
+# Two shapes of labelled block: a shell script under scripts/, and a workflow
+# under .github/workflows/. Both are copied by the student out of the guide and
+# run from the repository, so both can drift from what ships.
+LABEL = re.compile(r"^#\s*(scripts/[a-z-]+\.sh|\.github/workflows/[a-z-]+\.yml)\s*$", re.M)
 
 
 def strip_label(text, label):
@@ -32,7 +35,7 @@ def main():
         if not m:
             continue
         lab = ROOT / f"reference/lab-{int(m.group(1))}-{int(m.group(2))}"
-        for blk in re.findall(r"```bash\n(.*?)```", doc.read_text(), re.S):
+        for blk in re.findall(r"```(?:bash|yaml)\n(.*?)```", doc.read_text(), re.S):
             lm = LABEL.search(blk)
             if not lm:
                 continue
@@ -48,7 +51,7 @@ def main():
                 print(f"::error file={path.relative_to(ROOT)}::differs from the "
                       f"block in {doc.name}. Sync one to the other.")
                 fail = 1
-    print(f"{checked} labelled script block(s) match the files that ship.")
+    print(f"{checked} labelled block(s) match the files that ship.")
     return fail
 
 

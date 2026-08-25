@@ -188,13 +188,21 @@ needs its own copy. Derive them from the environment rather than retyping, so
 the two cannot drift apart:
 
 ```bash
-source ../../cgep.env
+# You are in oidc/ after Step 1, so cgep.env is one level up, not two.
+source ../cgep.env
 gh variable set AWS_ROLE_ARN     --body "arn:aws:iam::$(aws sts get-caller-identity --query Account --output text):role/cgep-grc-gate"
 gh variable set TF_STATE_BUCKET  --body "$TF_VAR_state_bucket"
 ```
 
 Run that from inside your repository and `gh` targets it automatically; add
 `--repo OWNER/NAME` only if you are somewhere else.
+
+**`TF_STATE_BUCKET` is not decoration.** Your backend is partial: `main.tf`
+carries the state key, and `backend.hcl` carries the bucket, and `backend.hcl`
+is gitignored because it names your account's resources. So CI has no
+`backend.hcl` at all, and a bare `terraform init -input=false` fails rather
+than prompting. The workflow passes the bucket with `-backend-config` from
+this variable, which is the whole reason it exists.
 
 > **Variables, not secrets, and the distinction is the lesson.** A role ARN and
 > a bucket name are configuration. They identify things; they do not grant
@@ -215,6 +223,8 @@ Run that from inside your repository and `gh` targets it automatically; add
 
 ```yaml
 # .github/workflows/grc-gate.yml
+# Lab 4.3: the GRC evidence pipeline.
+# Every line here is a control statement; see the guide's takeaway table.
 name: grc-gate
 
 on:
@@ -224,7 +234,7 @@ on:
 
 # AC-6: the minimum token scope that works.
 permissions:
-  id-token: write      # AWS OIDC + Cosign keyless (Lab 4.4)
+  id-token: write      # AWS OIDC, and Cosign keyless in Lab 4.4
   contents: read
   pull-requests: write # PR comment
 
@@ -275,12 +285,13 @@ jobs:
             | tar -xz -C /usr/local/bin trivy
           trivy --version
 
-      # Policy unit tests run before the policies are trusted to gate anything.
-      - name: opa test (the gate's own tests)
+      # The gate's own tests run before it is trusted to gate anything.
+      - name: opa test
         run: opa test -v policies/
 
+      # An unconstrained policy enforces nothing. Prove each one can fail.
       - name: Mutation-test the policy suite
-        run: bash scripts/mutation-test.sh
+        run: bash scripts/mutation-test.sh policies
 
       - name: terraform fmt
         run: terraform fmt -check -recursive terraform/
@@ -289,7 +300,14 @@ jobs:
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
           set -euo pipefail
-          terraform init -input=false
+          # The backend is partial on purpose: main.tf carries the key, and
+          # backend.hcl carries the bucket and is gitignored because it names
+          # your account's resources. CI therefore has no backend.hcl, and a
+          # bare `terraform init -input=false` fails outright rather than
+          # prompting. The bucket arrives as a repository variable instead,
+          # which is what `gh variable set TF_STATE_BUCKET` in Step 2 is for.
+          terraform init -input=false \
+            -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
           terraform validate
           terraform plan -out=tfplan -no-color | tee plan.txt
           terraform show -json tfplan > plan.json
@@ -316,6 +334,9 @@ jobs:
           jq -r '.runs[].results[] | "  " + .ruleId + ": " + .message.text' evidence/trivy.sarif || true
           test "$COUNT" -eq 0
 
+      # if: always() on everything below. A Conftest failure must not abort
+      # the job before evidence is captured; a failed run is exactly the run
+      # whose evidence you will want later.
       - name: Copy plan into evidence
         if: always()
         run: |
