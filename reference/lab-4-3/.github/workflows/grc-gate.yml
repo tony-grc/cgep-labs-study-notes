@@ -114,7 +114,11 @@ jobs:
         if: always()
         run: |
           set -euo pipefail
+          # --ignorefile is required: Trivy auto-discovers a plain
+          # .trivyignore but NOT .trivyignore.yaml, and the YAML form is the
+          # one that carries a justification and an expiry date.
           trivy config "${TF_WORKING_DIR}" \
+            --ignorefile .trivyignore.yaml \
             --format sarif --output evidence/trivy.sarif \
             --severity HIGH,CRITICAL --exit-code 0
           COUNT=$(jq '[.runs[].results[]] | length' evidence/trivy.sarif)

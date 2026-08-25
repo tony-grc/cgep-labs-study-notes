@@ -348,7 +348,11 @@ jobs:
         if: always()
         run: |
           set -euo pipefail
+          # --ignorefile is required: Trivy auto-discovers a plain
+          # .trivyignore but NOT .trivyignore.yaml, and the YAML form is the
+          # one that carries a justification and an expiry date.
           trivy config "${TF_WORKING_DIR}" \
+            --ignorefile .trivyignore.yaml \
             --format sarif --output evidence/trivy.sarif \
             --severity HIGH,CRITICAL --exit-code 0
           COUNT=$(jq '[.runs[].results[]] | length' evidence/trivy.sarif)
@@ -494,6 +498,7 @@ The workflow file is checked in, the history is preserved, and an assessor trave
 
 - [ ] `oidc/` module committed, with the state-access policy.
 - [ ] `.github/workflows/grc-gate.yml` committed, every action SHA-pinned.
+- [ ] `.trivyignore.yaml` committed, every entry carrying a justification and an `expired_at`.
 - [ ] `vars.AWS_ROLE_ARN` set.
 - [ ] One green PR and one red PR in history.
 - [ ] The inert-gate test run URL, closed unmerged.
@@ -507,7 +512,11 @@ The workflow file is checked in, the history is preserved, and an assessor trave
 - **`AccessDenied` on `s3:PutObject` during `terraform init`.** The role needs write to the state bucket and `kms:GenerateDataKey` on the state key. `ReadOnlyAccess` alone is not enough; that is what `aws_iam_role_policy.state_access` is for.
 - **`Error acquiring the state lock` on concurrent PRs.** Two runs against one state `key`. Serialize with a concurrency group, or give PR runs a separate key.
 - **Conftest finds no policies.** `--policy` resolves relative to the step's working directory. The gate script takes it as an argument for exactly this reason.
-- **Trivy findings you disagree with.** Add `.trivyignore` with a dated justification per rule ID. Do not scatter `--skip` flags through the workflow; an exclusion nobody can find is an exclusion nobody reviews.
+- **Trivy findings you disagree with.** Put them in `.trivyignore.yaml` at your repository root, with a justification and an `expired_at` date, and never scatter `--skip` flags through the workflow: an exclusion nobody can find is an exclusion nobody reviews. Use the **YAML** file rather than a plain `.trivyignore`, because only the YAML form carries a statement and an expiry, and pass `--ignorefile` explicitly, because Trivy auto-discovers the plain file and not the YAML one.
+
+  This lab ships one, and it is worth reading as the worked example. Trivy reports `AWS-0132`, "bucket does not encrypt data with a customer managed key", against a plan where both buckets name the same CMK. It reads encryption from the `aws_s3_bucket` resource, and since AWS provider v4 that setting lives in a separate `aws_s3_bucket_server_side_encryption_configuration` resource which Trivy does not correlate back in plan mode. The tell is that two identically configured buckets produce one finding rather than two.
+
+  Notice what makes the suppression defensible rather than convenient. The reason is written down, a command to re-check the reason is written down, `expired_at` makes Trivy surface the finding again on its own, and the control is enforced anyway by `policies/sc28_encryption_aws.rego`, which asserts the same property from the same plan and is mutation-tested. Suppressing a scanner rule you have independently enforced is an exception. Suppressing one you have not is a hole with a comment on it.
 - **The plan shows every resource as new.** Your backend block is missing or points at the wrong key. See the prerequisite note at the top.
 
 ## Cleanup

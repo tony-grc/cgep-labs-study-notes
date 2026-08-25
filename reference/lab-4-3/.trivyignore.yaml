@@ -1,0 +1,29 @@
+# Trivy suppressions.
+#
+# An exclusion nobody can find is an exclusion nobody reviews, so each entry
+# carries three things: why it is here, how to check that reason is still true,
+# and a date on which it stops applying. Trivy enforces expired_at itself: past
+# that date the finding returns and the pipeline goes red until someone looks
+# at it again. That is the difference between an exception and a hole.
+misconfigurations:
+  - id: AWS-0132
+    statement: >-
+      False positive against Terraform plan JSON. AWS-0132 reads encryption
+      from the aws_s3_bucket resource, but since AWS provider v4 the setting
+      lives in a separate aws_s3_bucket_server_side_encryption_configuration
+      resource, which Trivy does not correlate back to the bucket in plan mode.
+      The evidence that this is a parser artifact rather than a finding: both
+      buckets carry byte-identical SSE configuration naming the same CMK, and
+      only one of the two is flagged.
+
+      Check the reason still holds with:
+        jq '.planned_values.root_module.resources[]
+            | select(.type=="aws_s3_bucket_server_side_encryption_configuration")
+            | .values.rule[0].apply_server_side_encryption_by_default[0]' plan.json
+      Every entry must show "aws:kms" and a kms_master_key_id.
+
+      SC-28 is not left unenforced by this. policies/sc28_encryption_aws.rego
+      asserts the same property from the same plan, is mutation-tested, and
+      fires on Lab 3.4's degraded fixture. Trivy is defence in depth here, not
+      the control.
+    expired_at: 2027-02-01
