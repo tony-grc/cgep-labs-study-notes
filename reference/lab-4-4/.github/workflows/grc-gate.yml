@@ -187,7 +187,22 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: grc-evidence-${{ github.run_id }}
-          path: evidence/
+          # Named files, not the evidence/ directory.
+          #
+          # `path: evidence/` uploads whatever else lives there, which in a real
+          # repository is every prior lab's artifacts, including
+          # evidence/lab-2-3/state.json. Terraform state records every attribute
+          # the provider stored, sensitive ones included, and Lab 2.5 exists to
+          # teach exactly that. Re-uploading it on every run, to an artifact any
+          # repository reader can download, is the opposite of the lesson.
+          #
+          # It also nests: download a run's artifact into evidence/ and the next
+          # run packages it inside the next artifact, and so on.
+          path: |
+            evidence/plan.json
+            evidence/plan.txt
+            evidence/conftest-results.json
+            evidence/trivy.sarif
           # 90, not 365, and the difference is a control claim.
           #
           # GitHub caps artifact retention at the repository or organisation

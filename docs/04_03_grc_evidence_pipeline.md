@@ -374,7 +374,22 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: grc-evidence-${{ github.run_id }}
-          path: evidence/
+          # Named files, not the evidence/ directory.
+          #
+          # `path: evidence/` uploads whatever else lives there, which in a real
+          # repository is every prior lab's artifacts, including
+          # evidence/lab-2-3/state.json. Terraform state records every attribute
+          # the provider stored, sensitive ones included, and Lab 2.5 exists to
+          # teach exactly that. Re-uploading it on every run, to an artifact any
+          # repository reader can download, is the opposite of the lesson.
+          #
+          # It also nests: download a run's artifact into evidence/ and the next
+          # run packages it inside the next artifact, and so on.
+          path: |
+            evidence/plan.json
+            evidence/plan.txt
+            evidence/conftest-results.json
+            evidence/trivy.sarif
           # 90, not 365, and the difference is a control claim.
           #
           # GitHub caps artifact retention at the repository or organisation
@@ -504,6 +519,21 @@ The workflow file is checked in, the history is preserved, and an assessor trave
 - Compliant code: green. Non-compliant: red, with control IDs in the log.
 - Removing `policies/` makes it red, not green.
 - Branch protection blocks merge on red, including for admins.
+
+> **Upload named files, never the evidence directory.** The artifact is called
+> `grc-evidence-<run-id>`, so it should hold what that run produced: the plan,
+> the plan text, the Conftest results, the Trivy SARIF. Pointing
+> `upload-artifact` at `evidence/` instead sweeps in everything else that lives
+> there, which in a real repository means every earlier lab, including
+> `evidence/lab-2-3/state.json`.
+>
+> Terraform state records every attribute the provider stored, sensitive values
+> included. Lab 2.5 is built around that fact. Re-uploading it on every run, to
+> an artifact anyone with read access can download, teaches the opposite.
+>
+> It also compounds. Download a run's artifact into `evidence/` to keep as
+> evidence, and the next run packages that inside the next artifact, and the
+> one after that packages both.
 
 > **The artifact retention warning is a control claim, not a nuisance.**
 > The workflow used to ask for `retention-days: 365`. GitHub caps artifact
