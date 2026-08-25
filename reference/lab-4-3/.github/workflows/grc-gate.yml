@@ -21,6 +21,13 @@ env:
   OPA_VERSION: 1.19.1
   TRIVY_VERSION: 0.74.0
 
+  # The workspace's two required inputs. Locally they come from cgep.env, which
+  # CI cannot read, so they arrive as repository variables. They form the bucket
+  # names, so they must match what built the resources: a wrong value does not
+  # error, it proposes renaming live infrastructure.
+  TF_VAR_project_name: ${{ vars.TF_VAR_PROJECT_NAME }}
+  TF_VAR_environment: ${{ vars.TF_VAR_ENVIRONMENT }}
+
 jobs:
   grc-gate:
     runs-on: ubuntu-latest
@@ -75,6 +82,12 @@ jobs:
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
           set -euo pipefail
+          # An unset repository variable renders as an EMPTY string, not as a
+          # missing one, and Terraform accepts empty and builds from it. These
+          # two feed the bucket names, so empty means a plan that proposes
+          # renaming everything you already have. Fail here instead.
+          : "${TF_VAR_project_name:?set the TF_VAR_PROJECT_NAME repository variable}"
+          : "${TF_VAR_environment:?set the TF_VAR_ENVIRONMENT repository variable}"
           # The backend is partial on purpose: main.tf carries the key, and
           # backend.hcl carries the bucket and is gitignored because it names
           # your account's resources. CI therefore has no backend.hcl, and a

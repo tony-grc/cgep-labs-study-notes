@@ -190,12 +190,21 @@ the two cannot drift apart:
 ```bash
 # You are in oidc/ after Step 1, so cgep.env is one level up, not two.
 source ../cgep.env
-gh variable set AWS_ROLE_ARN     --body "arn:aws:iam::$(aws sts get-caller-identity --query Account --output text):role/cgep-grc-gate"
-gh variable set TF_STATE_BUCKET  --body "$TF_VAR_state_bucket"
+gh variable set AWS_ROLE_ARN        --body "arn:aws:iam::$(aws sts get-caller-identity --query Account --output text):role/cgep-grc-gate"
+gh variable set TF_STATE_BUCKET     --body "$TF_VAR_state_bucket"
+gh variable set TF_VAR_PROJECT_NAME --body "$TF_VAR_project_name"
+gh variable set TF_VAR_ENVIRONMENT  --body "$TF_VAR_environment"
 ```
 
 Run that from inside your repository and `gh` targets it automatically; add
 `--repo OWNER/NAME` only if you are somewhere else.
+
+`TF_VAR_PROJECT_NAME` and `TF_VAR_ENVIRONMENT` are the workspace's only two
+required inputs. Locally they come from `cgep.env`; CI cannot read that file.
+They also form your bucket names, which makes a wrong value worse than a
+missing one: it does not error, it proposes renaming infrastructure you
+already have. The workflow refuses to run if either arrives empty, because an
+unset repository variable renders as an empty string rather than as nothing.
 
 **`TF_STATE_BUCKET` is not decoration.** Your backend is partial: `main.tf`
 carries the state key, and `backend.hcl` carries the bucket, and `backend.hcl`
@@ -245,6 +254,13 @@ env:
   CONFTEST_VERSION: 0.69.0
   OPA_VERSION: 1.19.1
   TRIVY_VERSION: 0.74.0
+
+  # The workspace's two required inputs. Locally they come from cgep.env, which
+  # CI cannot read, so they arrive as repository variables. They form the bucket
+  # names, so they must match what built the resources: a wrong value does not
+  # error, it proposes renaming live infrastructure.
+  TF_VAR_project_name: ${{ vars.TF_VAR_PROJECT_NAME }}
+  TF_VAR_environment: ${{ vars.TF_VAR_ENVIRONMENT }}
 
 jobs:
   grc-gate:
@@ -300,6 +316,12 @@ jobs:
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
           set -euo pipefail
+          # An unset repository variable renders as an EMPTY string, not as a
+          # missing one, and Terraform accepts empty and builds from it. These
+          # two feed the bucket names, so empty means a plan that proposes
+          # renaming everything you already have. Fail here instead.
+          : "${TF_VAR_project_name:?set the TF_VAR_PROJECT_NAME repository variable}"
+          : "${TF_VAR_environment:?set the TF_VAR_ENVIRONMENT repository variable}"
           # The backend is partial on purpose: main.tf carries the key, and
           # backend.hcl carries the bucket and is gitignored because it names
           # your account's resources. CI therefore has no backend.hcl, and a

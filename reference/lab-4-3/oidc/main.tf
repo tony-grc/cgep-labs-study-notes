@@ -55,17 +55,39 @@ resource "aws_iam_role" "grc_gate" {
       Condition = {
         # aud: the token must be addressed to AWS. A token minted for a
         # different audience cannot be replayed here.
-        StringEquals = {
-          "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-        }
-        # sub: GitHub builds this string. Its shape varies by trigger:
-        #   push        repo:OWNER/REPO:ref:refs/heads/main
-        #   pull req    repo:OWNER/REPO:pull_request
-        #   environment repo:OWNER/REPO:environment:production
-        # StringLike with a trailing * covers every trigger for ONE repo.
-        # Never write repo:*:* - that trusts every repository on GitHub.
+        # sub: GitHub builds this string, and it now comes in two shapes.
+        #
+        #   classic     repo:OWNER/REPO:ref:refs/heads/main
+        #   immutable   repo:OWNER@1234/REPO@5678:ref:refs/heads/main
+        #
+        # The second form appends GitHub's numeric account and repository IDs.
+        # It exists because names can be renamed, transferred and re-registered,
+        # while the IDs cannot, so a policy written against names alone trusts
+        # whoever holds the name today. Repositories are being moved onto it.
+        #
+        # Matching only the classic form produces "Not authorized to perform
+        # sts:AssumeRoleWithWebIdentity", which reads like a broken policy
+        # rather than a claim that no longer looks the way you expected.
+        #
+        # Both patterns are listed because a condition value may be a list and
+        # matches if ANY entry matches. The trailing * still covers every
+        # trigger for this one repository. Never write repo:*:* - that trusts
+        # every repository on GitHub.
         StringLike = {
-          "token.actions.githubusercontent.com:sub" = "repo:${var.github_org}/${var.github_repo}:*"
+          "token.actions.githubusercontent.com:sub" = [
+            "repo:${var.github_org}/${var.github_repo}:*",
+            "repo:${var.github_org}@*/${var.github_repo}@*:*",
+          ]
+        }
+
+        # The IDs, asserted exactly. This is what makes the wildcards above
+        # safe: the sub match is by name, and these two pin the account and the
+        # repository to the numbers GitHub will never reissue. Together they
+        # are strictly tighter than the name-only policy this replaced.
+        StringEquals = {
+          "token.actions.githubusercontent.com:aud"                 = "sts.amazonaws.com"
+          "token.actions.githubusercontent.com:repository_owner_id" = var.github_owner_id
+          "token.actions.githubusercontent.com:repository_id"       = var.github_repo_id
         }
       }
     }]

@@ -40,3 +40,30 @@ variable "aws_region" {
   type    = string
   default = "us-east-1"
 }
+
+# GitHub's immutable identifiers for your account and repository. Names can be
+# renamed, transferred and re-registered by someone else; these numbers cannot.
+# GitHub now issues them inside the OIDC `sub` claim, and asserts them as their
+# own claims, which is what this trust policy pins.
+#
+# Read them out rather than typing them:
+#   gh api "repos/$TF_VAR_github_org/$TF_VAR_github_repo" --jq '.owner.id, .id'
+variable "github_owner_id" {
+  type        = string
+  description = "Numeric GitHub account ID of the repository owner."
+
+  validation {
+    condition     = can(regex("^[0-9]+$", var.github_owner_id))
+    error_message = "github_owner_id must be the numeric account ID. Run: gh api \"repos/$TF_VAR_github_org/$TF_VAR_github_repo\" --jq .owner.id"
+  }
+}
+
+variable "github_repo_id" {
+  type        = string
+  description = "Numeric GitHub repository ID."
+
+  validation {
+    condition     = can(regex("^[0-9]+$", var.github_repo_id))
+    error_message = "github_repo_id must be the numeric repository ID. Run: gh api \"repos/$TF_VAR_github_org/$TF_VAR_github_repo\" --jq .id"
+  }
+}
