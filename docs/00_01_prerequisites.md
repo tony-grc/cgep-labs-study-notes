@@ -982,14 +982,25 @@ export TF_VAR_project_name=cgep-lab
 # dev, staging or prod. Drives the Environment tag.
 export TF_VAR_environment=dev
 
-# ---- GCP, needed for Labs 2.4, 3.3 and 5.4. Leave blank for the AWS track ----
-export TF_VAR_gcp_project=
+# ---- GCP, needed for Labs 2.4, 3.3 and 5.4 ----
+# Uncomment and fill this in when you reach Lab 2.4.
+#
+# It is commented out rather than left as an empty export, and that matters.
+# Terraform stops on a variable that was never set, with "No value for required
+# variable". It ACCEPTS an empty string and builds from it. An empty github_org
+# produces the OIDC condition "repo:/your-repo:*", which no real token can ever
+# match, so the role is simply un-assumable and CI reports "invalid identity
+# token" instead of telling you the value is blank.
+# export TF_VAR_gcp_project=your-project-id
 export TF_VAR_gcp_region=us-central1
-export CLOUDSDK_CORE_PROJECT="$TF_VAR_gcp_project"
+if [ -n "${TF_VAR_gcp_project:-}" ]; then
+  export CLOUDSDK_CORE_PROJECT="$TF_VAR_gcp_project"
+fi
 
 # ---- GitHub, needed for Labs 4.3, 4.4 and 5.4 ----
-export TF_VAR_github_org=
-export TF_VAR_github_repo=
+# Same rule: uncomment these when you reach Lab 4.3, do not leave them blank.
+# export TF_VAR_github_org=your-github-username
+# export TF_VAR_github_repo=your-repo-name
 
 # ---- Filled in by labs as you finish them. Leave these alone for now. ----
 # Lab 2.2 gives you the state backend:
