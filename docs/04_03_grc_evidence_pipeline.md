@@ -375,7 +375,18 @@ jobs:
         with:
           name: grc-evidence-${{ github.run_id }}
           path: evidence/
-          retention-days: 365
+          # 90, not 365, and the difference is a control claim.
+          #
+          # GitHub caps artifact retention at the repository or organisation
+          # maximum, 90 days by default. Ask for more and it does not fail: it
+          # warns, silently stores 90, and the run still goes green. A pipeline
+          # configured for 365 that actually retains 90 is a documented AU-11
+          # retention period your evidence does not have.
+          #
+          # If you need longer, raise the limit in repository settings first,
+          # then change this, then confirm the actual retention on a real
+          # artifact. Do not cite a retention period you have not checked.
+          retention-days: 90
 ```
 
 Choices worth understanding:
@@ -493,6 +504,22 @@ The workflow file is checked in, the history is preserved, and an assessor trave
 - Compliant code: green. Non-compliant: red, with control IDs in the log.
 - Removing `policies/` makes it red, not green.
 - Branch protection blocks merge on red, including for admins.
+
+> **The artifact retention warning is a control claim, not a nuisance.**
+> The workflow used to ask for `retention-days: 365`. GitHub caps artifact
+> retention at the repository maximum, 90 days by default, and asking for more
+> does not fail. It prints a warning, stores 90, and the run goes green.
+>
+> That is a pipeline documented as retaining evidence for a year that retains
+> it for a quarter. If AU-11 appears in your OSCAL with a 365 day retention
+> period, sourced from this workflow, the claim is false and nothing in the
+> run told you so. It is the same failure this course keeps circling: the
+> system did what you asked as far as it could, said so quietly, and carried
+> on green.
+>
+> It now asks for 90, which is what it gets. If you need longer, raise the
+> limit in repository settings, change the value, and then confirm the actual
+> retention on a real artifact before you cite it anywhere.
 
 ## Portfolio submission checklist
 

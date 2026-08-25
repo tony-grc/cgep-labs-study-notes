@@ -141,4 +141,15 @@ jobs:
         with:
           name: grc-evidence-${{ github.run_id }}
           path: evidence/
-          retention-days: 365
+          # 90, not 365, and the difference is a control claim.
+          #
+          # GitHub caps artifact retention at the repository or organisation
+          # maximum, 90 days by default. Ask for more and it does not fail: it
+          # warns, silently stores 90, and the run still goes green. A pipeline
+          # configured for 365 that actually retains 90 is a documented AU-11
+          # retention period your evidence does not have.
+          #
+          # If you need longer, raise the limit in repository settings first,
+          # then change this, then confirm the actual retention on a real
+          # artifact. Do not cite a retention period you have not checked.
+          retention-days: 90
