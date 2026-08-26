@@ -306,11 +306,63 @@ Step 1 fails. And note you cannot write the tampered file *back*: Object Lock re
 
 **2. Authenticity.**
 
+> **Read this before you sign anything from your own machine.** Keyless
+> signing is not local. Cosign authenticates you through an identity provider,
+> Fulcio issues a short-lived certificate carrying **your email address**, and
+> the signature and that certificate are published to **Rekor, a public
+> append-only transparency log**. Append-only means exactly that: there is no
+> delete, no expiry, and no support request that removes it. Anyone can search
+> Rekor by email afterwards.
+>
+> `--yes` skips cosign's confirmation prompts, which is the only place the tool
+> asks whether you meant to do that.
+>
+> None of this is a flaw. Public, permanent, searchable attestation is the
+> entire point of a transparency log, and it is why the pipeline's signatures
+> are trustworthy. It is simply a decision to make on purpose rather than
+> discover afterwards, and a lab exercise is a poor reason to publish your
+> personal address forever.
+
+**The safe version, which is the default here.** Sign with a local key pair
+and a signing configuration that has no transparency log, so nothing leaves
+your machine:
+
 ```bash
-cosign sign-blob --yes --bundle /tmp/fake.sig.bundle /tmp/b.tar.gz
+export COSIGN_PASSWORD=""
+cosign generate-key-pair
+
+curl -fsSL https://raw.githubusercontent.com/sigstore/root-signing/refs/heads/main/targets/signing_config.v0.2.json \
+  | jq 'del(.rekorTlogUrls)' > /tmp/no-tlog.json
+
+cosign sign-blob --yes --key cosign.key --signing-config /tmp/no-tlog.json \
+  --bundle /tmp/fake.sig.bundle /tmp/b.tar.gz
 ```
 
-Sign it yourself with your own identity. Substitute that bundle and re-verify. Step 2 fails on certificate identity, because your personal OIDC subject is not the workflow subject in the receipt. **Under a `.*` identity regex this attack succeeds.**
+Substitute that bundle and re-verify. Step 2 fails:
+
+```
+Error: failed to verify log inclusion: not enough verified log entries
+from transparency log: 0 < 1
+```
+
+The signature is real, and you can prove it to yourself:
+
+```bash
+cosign verify-blob --bundle /tmp/fake.sig.bundle --key cosign.pub \
+  --insecure-ignore-tlog /tmp/b.tar.gz     # Verified OK
+```
+
+So the forgery is genuine cryptography that the chain still refuses, on two
+counts: it is not in the transparency log, and it does not carry the
+workflow's certificate identity. **Under a `.*` identity regex the second
+check stops mattering**, which is why the receipt pins the exact workflow.
+
+**The realistic version, if you accept the permanence.** An insider attacking
+this would hold a real Sigstore identity, not a bare key, so
+`cosign sign-blob --yes --bundle /tmp/fake.sig.bundle /tmp/b.tar.gz` is the
+closer analogue: it fails specifically on certificate identity, because your
+personal OIDC subject is not the workflow subject in the receipt. It also puts
+your email in Rekor permanently. Your call, made knowingly.
 
 **3. Completeness.**
 
